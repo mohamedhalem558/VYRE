@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: vyre-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-vyre_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vyre_password_secure}
+      POSTGRES_DB: ${POSTGRES_DB:-vyre_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vyre_admin} -d ${POSTGRES_DB:-vyre_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vyre-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  vyre-network:
+    driver: bridge
