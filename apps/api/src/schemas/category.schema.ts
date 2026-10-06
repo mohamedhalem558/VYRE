@@ -9,7 +9,7 @@ export const createCategorySchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase alphanumeric with hyphens")
     .optional(),
   description: z.string().optional(),
-  image: z.string().url("Image must be a valid URL").optional().or(z.literal("")),
+  image: z.string().optional().or(z.literal("")),
   active: z.boolean().default(true),
   displayOrder: z.number().int().nonnegative().default(0),
 });

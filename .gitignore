@@ -58,3 +58,7 @@ apps/api/prisma/*.db-journal
 .tmp/
 tmp/
 *.tsbuildinfo
+
+# Uploads
+apps/api/uploads/*
+!apps/api/uploads/.gitkeep

@@ -26,8 +26,6 @@ import {
 } from "lucide-react";
 import { cn } from "../utils/cn.js";
 
-const ALL_PRODUCT_SIZES: ProductSize[] = ["XS", "S", "M", "L", "XL", "XXL"];
-
 export const ProductDetailsPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -265,76 +263,76 @@ export const ProductDetailsPage: React.FC = () => {
           </div>
 
           {/* Color Swatch Selector */}
-          <div className="space-y-3">
-            <label className="text-xs font-bold uppercase tracking-wider text-neutral-800">
-              Color: <span className="text-black font-semibold">{selectedColor?.name}</span>
-            </label>
-
-            <div className="flex items-center gap-2.5">
-              {product.colors.map((color) => (
-                <button
-                  key={color.name}
-                  type="button"
-                  onClick={() => setSelectedColor(color)}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold transition-all",
-                    selectedColor?.name === color.name
-                      ? "border-black bg-neutral-900 text-white ring-1 ring-black"
-                      : "border-neutral-200 bg-white text-neutral-700 hover:border-black"
-                  )}
-                >
-                  <span
-                    className="h-3 w-3 rounded-full border border-neutral-300"
-                    style={{ backgroundColor: color.hex }}
-                  />
-                  <span>{color.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Size Selector + Size Guide Trigger */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
+          {product.colors && product.colors.length > 0 && (
+            <div className="space-y-3">
               <label className="text-xs font-bold uppercase tracking-wider text-neutral-800">
-                Size: <span className="text-black font-semibold">{selectedSize}</span>
+                Color: <span className="text-black font-semibold">{selectedColor?.name || product.colors[0]?.name}</span>
               </label>
-              <button
-                type="button"
-                onClick={() => setIsSizeGuideOpen(true)}
-                className="inline-flex items-center gap-1.5 text-xs text-neutral-600 hover:text-black hover:underline font-bold uppercase tracking-wider"
-              >
-                <Ruler className="h-3.5 w-3.5" />
-                <span>Size Guide</span>
-              </button>
-            </div>
 
-            <div className="grid grid-cols-6 gap-2">
-              {ALL_PRODUCT_SIZES.map((size) => {
-                const isAvailable = product.sizes.includes(size);
-                const isSelected = selectedSize === size;
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {product.colors.map((color) => (
+                    <button
+                      key={color.name}
+                      type="button"
+                      onClick={() => setSelectedColor(color)}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold transition-all",
+                        selectedColor?.name === color.name
+                          ? "border-black bg-neutral-900 text-white ring-1 ring-black"
+                          : "border-neutral-200 bg-white text-neutral-700 hover:border-black"
+                      )}
+                    >
+                      <span
+                        className="h-3 w-3 rounded-full border border-neutral-300"
+                        style={{ backgroundColor: color.hex }}
+                      />
+                      <span>{color.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-                return (
+            {/* Size Selector + Size Guide Trigger */}
+            {product.sizes && product.sizes.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-neutral-800">
+                    Size: <span className="text-black font-semibold">{selectedSize}</span>
+                  </label>
                   <button
-                    key={size}
                     type="button"
-                    disabled={!isAvailable}
-                    onClick={() => setSelectedSize(size)}
-                    className={cn(
-                      "h-11 flex flex-col items-center justify-center rounded-xs font-bold uppercase transition-all border text-xs",
-                      !isAvailable
-                        ? "opacity-30 border-neutral-200 bg-neutral-100 text-neutral-400 line-through cursor-not-allowed"
-                        : isSelected
-                          ? "bg-black text-white border-black shadow-xs"
-                          : "bg-white text-neutral-800 border-neutral-200 hover:border-black"
-                    )}
+                    onClick={() => setIsSizeGuideOpen(true)}
+                    className="inline-flex items-center gap-1.5 text-xs text-neutral-600 hover:text-black hover:underline font-bold uppercase tracking-wider"
                   >
-                    <span>{size}</span>
+                    <Ruler className="h-3.5 w-3.5" />
+                    <span>Size Guide</span>
                   </button>
-                );
-              })}
-            </div>
-          </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {product.sizes.map((size) => {
+                    const isSelected = selectedSize === size;
+
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setSelectedSize(size)}
+                        className={cn(
+                          "h-11 min-w-[3.2rem] px-4 flex items-center justify-center rounded-xs font-bold uppercase transition-all border text-xs",
+                          isSelected
+                            ? "bg-black text-white border-black shadow-xs"
+                            : "bg-white text-neutral-800 border-neutral-200 hover:border-black"
+                        )}
+                      >
+                        <span>{size}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
           {/* Quantity and Actions */}
           <div className="space-y-4 pt-4 border-t border-neutral-200">

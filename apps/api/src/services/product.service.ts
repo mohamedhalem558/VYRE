@@ -76,8 +76,8 @@ export class ProductService {
       active: raw.active,
       inStock: totalStock > 0,
       stockCount: totalStock,
-      sizes: sizes.length > 0 ? sizes : (["S", "M", "L", "XL"] as ProductSize[]),
-      colors: colors.length > 0 ? colors : [{ name: "Obsidian Black", hex: "#0a0a0a" }],
+      sizes: sizes.length > 0 ? sizes : (raw.variants?.length === 0 ? (["S", "M", "L", "XL"] as ProductSize[]) : []),
+      colors: colors.length > 0 ? colors : (raw.variants?.length === 0 ? [{ name: "Obsidian Black", hex: "#0a0a0a" }] : []),
       images: images.length > 0 ? images : [primaryImage],
       primaryImage,
       secondaryImage,
@@ -339,7 +339,9 @@ export class ProductService {
         await tx.productVariant.createMany({
           data: data.variants.map((v) => ({
             productId: product.id,
-            sku: v.sku,
+            sku:
+              v.sku ||
+              `VYRE-${product.id.slice(0, 4)}-${v.colorId.slice(0, 4)}-${v.sizeId.slice(0, 4)}-${Math.random().toString(36).slice(-4)}`.toUpperCase(),
             colorId: v.colorId,
             sizeId: v.sizeId,
             stock: v.stock,
@@ -404,28 +406,62 @@ export class ProductService {
       }
 
       if (data.variants) {
-        for (const v of data.variants) {
-          await tx.productVariant.upsert({
-            where: { sku: v.sku },
-            create: {
-              productId: id,
-              sku: v.sku,
-              colorId: v.colorId,
-              sizeId: v.sizeId,
-              stock: v.stock,
-              lowStockThreshold: v.lowStockThreshold || 5,
-              price: v.price,
-              compareAtPrice: v.compareAtPrice,
-              active: v.active ?? true,
+        const existingVariants = await tx.productVariant.findMany({
+          where: { productId: id },
+        });
+
+        const incomingPairKeys = new Set(
+          data.variants.map((v) => `${v.colorId}:${v.sizeId}`)
+        );
+
+        // Deactivate variants for unselected color/size pairs so they don't show on the storefront
+        const variantsToDeactivate = existingVariants.filter(
+          (ev) => !incomingPairKeys.has(`${ev.colorId}:${ev.sizeId}`)
+        );
+        if (variantsToDeactivate.length > 0) {
+          await tx.productVariant.updateMany({
+            where: {
+              id: { in: variantsToDeactivate.map((v) => v.id) },
             },
-            update: {
-              stock: v.stock,
-              lowStockThreshold: v.lowStockThreshold || 5,
-              price: v.price,
-              compareAtPrice: v.compareAtPrice,
-              active: v.active ?? true,
-            },
+            data: { active: false },
           });
+        }
+
+        // Upsert each incoming variant
+        for (const v of data.variants) {
+          const existing = existingVariants.find(
+            (ev) => ev.colorId === v.colorId && ev.sizeId === v.sizeId
+          );
+
+          if (existing) {
+            await tx.productVariant.update({
+              where: { id: existing.id },
+              data: {
+                stock: v.stock,
+                lowStockThreshold: v.lowStockThreshold || 5,
+                price: v.price,
+                compareAtPrice: v.compareAtPrice,
+                active: true,
+              },
+            });
+          } else {
+            const sku =
+              v.sku ||
+              `VYRE-${id.slice(0, 4)}-${Date.now().toString().slice(-4)}-${Math.random().toString(36).slice(-3)}`.toUpperCase();
+            await tx.productVariant.create({
+              data: {
+                productId: id,
+                sku,
+                colorId: v.colorId,
+                sizeId: v.sizeId,
+                stock: v.stock,
+                lowStockThreshold: v.lowStockThreshold || 5,
+                price: v.price,
+                compareAtPrice: v.compareAtPrice,
+                active: true,
+              },
+            });
+          }
         }
       }
 

@@ -519,3 +519,21 @@ model SystemHealth {
 
   @@map("system_health")
 }
+
+// ----------------------------------------------------
+// HOMEPAGE HERO / BANNER CONTENT
+// ----------------------------------------------------
+model HomepageHero {
+  id        String   @id @default(uuid())
+  eyebrow   String   @default("Winter 2026 Collection")
+  title     String   @default("VYRE.")
+  subtitle  String   @default("Built For Your Everyday.")
+  ctaText   String   @default("Shop Collection")
+  ctaLink   String   @default("/shop")
+  imageUrl  String   @db.Text
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("homepage_heroes")
+}

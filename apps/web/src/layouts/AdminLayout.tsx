@@ -5,6 +5,7 @@ import { Logo } from "../components/brand/Logo.js";
 import { cn } from "../utils/cn.js";
 import {
   LayoutDashboard,
+  Sparkles,
   Package,
   Layers,
   Boxes,
@@ -45,16 +46,22 @@ export const AdminLayout: React.FC = () => {
           visible: isAdmin || isMarketingManager,
         },
         {
+          label: "Homepage Hero",
+          href: "/admin/hero",
+          icon: Sparkles,
+          visible: isAdmin || isMarketingManager,
+        },
+        {
+          label: "Homepage Collections",
+          href: "/admin/categories",
+          icon: Layers,
+          visible: isAdmin || isMarketingManager || isInventoryManager,
+        },
+        {
           label: "Products",
           href: "/admin/products",
           icon: Package,
           visible: isAdmin || isInventoryManager || isMarketingManager,
-        },
-        {
-          label: "Categories",
-          href: "/admin/categories",
-          icon: Layers,
-          visible: isAdmin || isMarketingManager,
         },
         {
           label: "Inventory",

@@ -11,12 +11,26 @@ export const apiClient = axios.create({
   },
 });
 
+// Helper to set Authorization header reliably across axios instances & versions
+function setAuthHeader(headers: any, token: string) {
+  if (!headers) return;
+  if (typeof headers.set === "function") {
+    headers.set("Authorization", `Bearer ${token}`);
+  } else {
+    headers.Authorization = `Bearer ${token}`;
+    headers["authorization"] = `Bearer ${token}`;
+  }
+}
+
 // Attach Bearer Access Token to every request if available
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("vyre_access_token");
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (token) {
+      if (!config.headers) {
+        config.headers = {} as any;
+      }
+      setAuthHeader(config.headers, token);
     }
     return config;
   },
@@ -34,6 +48,7 @@ apiClient.interceptors.response.use(
       error.response?.status === 401 &&
       !originalRequest?._retry &&
       !originalRequest?.url?.includes("/auth/login") &&
+      !originalRequest?.url?.includes("/auth/register") &&
       !originalRequest?.url?.includes("/auth/refresh")
     ) {
       originalRequest._retry = true;
@@ -54,14 +69,24 @@ apiClient.interceptors.response.use(
               localStorage.setItem("vyre_refresh_token", newRefreshToken);
             }
 
-            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+            if (!originalRequest.headers) {
+              originalRequest.headers = {} as any;
+            }
+            setAuthHeader(originalRequest.headers, newAccessToken);
             return apiClient(originalRequest);
           }
         } catch (_refreshErr) {
-          // Refresh failed - clear stale tokens
+          // Refresh failed - clear stale tokens and user session
           localStorage.removeItem("vyre_access_token");
           localStorage.removeItem("vyre_refresh_token");
+          localStorage.removeItem("vyre_auth_user");
+          window.dispatchEvent(new CustomEvent("vyre:auth-expired"));
         }
+      } else {
+        // No refresh token available - clear session
+        localStorage.removeItem("vyre_access_token");
+        localStorage.removeItem("vyre_auth_user");
+        window.dispatchEvent(new CustomEvent("vyre:auth-expired"));
       }
     }
 

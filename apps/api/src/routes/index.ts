@@ -12,6 +12,8 @@ import adminRouter from "./admin.routes.js";
 import couponRouter from "./coupon.routes.js";
 import reviewRouter from "./review.routes.js";
 import userRouter from "./user.routes.js";
+import uploadRouter from "./upload.routes.js";
+import heroRouter from "./hero.routes.js";
 
 const apiRouter = Router();
 
@@ -28,5 +30,7 @@ apiRouter.use("/admin", adminRouter);
 apiRouter.use("/users", userRouter);
 apiRouter.use("/coupons", couponRouter);
 apiRouter.use("/reviews", reviewRouter);
+apiRouter.use("/upload", uploadRouter);
+apiRouter.use("/hero", heroRouter);
 
 export default apiRouter;

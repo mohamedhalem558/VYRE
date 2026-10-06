@@ -36,14 +36,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     async function initAuth() {
       try {
+        const storedToken = authService.getAccessToken();
         const storedUser = authService.getCurrentUser();
-        if (storedUser) {
+
+        if (storedUser && storedToken) {
           setUser(storedUser);
+        } else if (!storedToken) {
+          setUser(null);
+          localStorage.removeItem("vyre_auth_user");
+          setIsLoading(false);
+          return;
         }
-        // Check with backend /auth/me for live session state
+
+        // Check with backend /auth/me for live session state & refresh if needed
         const liveUser = await authService.fetchMe();
         if (liveUser) {
           setUser(liveUser);
+        } else {
+          setUser(null);
         }
       } catch (err) {
         console.warn("[AuthProvider] Session verification failed:", err);
@@ -53,6 +63,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     initAuth();
+
+    // Listen for global auth expiration events
+    const handleAuthExpired = () => {
+      setUser(null);
+    };
+
+    window.addEventListener("vyre:auth-expired", handleAuthExpired);
+    return () => {
+      window.removeEventListener("vyre:auth-expired", handleAuthExpired);
+    };
   }, []);
 
   const login = async (email: string, pass: string): Promise<User> => {

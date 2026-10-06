@@ -34,6 +34,8 @@ import { AdminOrdersPage } from "../pages/admin/AdminOrdersPage.js";
 import { AdminCustomersPage } from "../pages/admin/AdminCustomersPage.js";
 import { AdminCouponsPage } from "../pages/admin/AdminCouponsPage.js";
 import { AdminUsersPage } from "../pages/admin/AdminUsersPage.js";
+import { AdminCategoriesPage } from "../pages/admin/AdminCategoriesPage.js";
+import { AdminHeroPage } from "../pages/admin/AdminHeroPage.js";
 
 // Informational Pages
 import { AboutPage } from "../pages/AboutPage.js";
@@ -59,6 +61,14 @@ export const AppRoutes: React.FC = () => {
           element={
             <ProtectedRoute allowedRoles={["ADMIN", "MARKETING_MANAGER"]}>
               <AdminDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="hero"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN", "MARKETING_MANAGER"]}>
+              <AdminHeroPage />
             </ProtectedRoute>
           }
         />
@@ -91,6 +101,22 @@ export const AppRoutes: React.FC = () => {
           element={
             <ProtectedRoute allowedRoles={["ADMIN"]}>
               <AdminCustomersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="categories"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN", "MARKETING_MANAGER"]}>
+              <AdminCategoriesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="collections"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN", "MARKETING_MANAGER"]}>
+              <AdminCategoriesPage />
             </ProtectedRoute>
           }
         />

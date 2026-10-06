@@ -1,3 +1,4 @@
+import path from "node:path";
 import express, { Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -11,22 +12,29 @@ import { errorHandler } from "./middleware/error.middleware.js";
 export function createApp(): Express {
   const app = express();
 
-  // Security headers
-  app.use(helmet());
+  // Security headers with crossOriginResourcePolicy allowing frontend to load uploaded media
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+    })
+  );
 
   // CORS Configuration
   app.use(
     cors({
-      origin: [env.CLIENT_URL, "http://localhost:5173", "http://localhost:3000"],
+      origin: [env.CLIENT_URL, "http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
       credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
     })
   );
 
-  // Body parsers
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  // Static files for uploaded product images
+  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
+  // Body parsers (support large base64 image uploads)
+  app.use(express.json({ limit: "50mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
   // Logging
   if (env.NODE_ENV !== "test") {

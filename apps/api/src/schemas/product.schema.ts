@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const createProductVariantSchema = z.object({
-  sku: z.string().min(3).max(100),
+  sku: z.string().min(3).max(100).optional(),
   colorId: z.string().uuid("Invalid colorId UUID"),
   sizeId: z.string().uuid("Invalid sizeId UUID"),
   stock: z.number().int().min(0).default(0),
@@ -12,7 +12,7 @@ export const createProductVariantSchema = z.object({
 });
 
 export const createProductImageSchema = z.object({
-  url: z.string().url("Valid image URL required"),
+  url: z.string().min(1, "Valid image URL or path required"),
   altText: z.string().max(255).optional(),
   displayOrder: z.number().int().default(0),
 });
@@ -36,7 +36,7 @@ export const createProductSchema = z.object({
   bestseller: z.boolean().default(false),
   newArrival: z.boolean().default(true),
   tags: z.array(z.string()).default([]),
-  images: z.array(createProductImageSchema).optional(),
+  images: z.array(createProductImageSchema).min(1, "At least one product image is required"),
   variants: z.array(createProductVariantSchema).optional(),
 });
 

@@ -25,6 +25,39 @@ export class TaxonomyController {
       next(error);
     }
   }
+
+  async createColor(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { name, hexCode, code } = req.body;
+      if (!name || !hexCode) {
+        res.status(400).json({
+          success: false,
+          error: "Color name and hexCode are required.",
+        });
+        return;
+      }
+      const color = await taxonomyService.createColor(name, hexCode, code);
+      res.status(201).json({
+        success: true,
+        data: color,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deleteColor(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      await taxonomyService.deleteColor(id);
+      res.status(200).json({
+        success: true,
+        message: "Color deleted successfully",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const taxonomyController = new TaxonomyController();

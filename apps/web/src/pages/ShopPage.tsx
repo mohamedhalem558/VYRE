@@ -33,10 +33,11 @@ export const ShopPage: React.FC = () => {
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
   const [gridColumns, setGridColumns] = useState<"3" | "4">("4");
 
-  // Filters state from URL or default
+  // Filters state from URL or default (gracefully handles legacy sort values)
   const selectedCategory = searchParams.get("category") || "";
   const searchQuery = searchParams.get("q") || "";
-  const sortBy = searchParams.get("sort") || "featured";
+  const rawSort = searchParams.get("sort");
+  const sortBy = rawSort === "newest" ? "newest" : "featured";
   const inStockOnly = searchParams.get("inStock") === "true";
   const selectedSizes = useMemo(
     () =>
@@ -299,9 +300,6 @@ export const ShopPage: React.FC = () => {
               >
                 <option value="featured">Featured</option>
                 <option value="newest">New Arrivals</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="rating">Highest Rated</option>
               </select>
               <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-500" />
             </div>

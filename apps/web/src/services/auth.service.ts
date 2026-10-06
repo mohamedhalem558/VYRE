@@ -27,7 +27,10 @@ export const authService = {
    */
   fetchMe: async (): Promise<User | null> => {
     const token = localStorage.getItem(ACCESS_TOKEN_KEY);
-    if (!token) return null;
+    if (!token) {
+      localStorage.removeItem(AUTH_USER_KEY);
+      return null;
+    }
 
     try {
       const res = await apiClient.get<ApiResponse<User>>("/auth/me");
@@ -36,8 +39,14 @@ export const authService = {
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
         return user;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.warn("[authService] Failed to fetch /auth/me:", error);
+      if (error?.response?.status === 401) {
+        localStorage.removeItem(ACCESS_TOKEN_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_KEY);
+        localStorage.removeItem(AUTH_USER_KEY);
+        return null;
+      }
     }
     return authService.getCurrentUser();
   },

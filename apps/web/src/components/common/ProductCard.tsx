@@ -17,8 +17,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView, 
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
 
-  const [selectedColor, setSelectedColor] = useState<ProductColor>(product.colors[0]);
-  const [selectedSize] = useState<ProductSize>(product.sizes[0] || "M");
+  const [selectedColor, setSelectedColor] = useState<ProductColor | undefined>(
+    product.colors && product.colors.length > 0 ? product.colors[0] : undefined
+  );
+  const [selectedSize] = useState<ProductSize>(
+    product.sizes && product.sizes.length > 0 ? product.sizes[0] : "M"
+  );
   const [isHovered, setIsHovered] = useState(false);
 
   const isFavorited = isInWishlist(product.id);
@@ -26,7 +30,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView, 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addToCart(product, selectedSize, selectedColor, 1);
+    const colorToAdd = selectedColor || product.colors?.[0] || { name: "Obsidian Black", hex: "#0a0a0a" };
+    const sizeToAdd = selectedSize || product.sizes?.[0] || "M";
+    addToCart(product, sizeToAdd, colorToAdd, 1);
   };
 
   const handleWishlistToggle = (e: React.MouseEvent) => {
@@ -130,27 +136,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView, 
         {/* Colors & Price */}
         <div className="flex items-center justify-between pt-1 border-t border-neutral-100">
           {/* Color Swatches */}
-          <div className="flex items-center gap-1.5">
-            {product.colors.map((color) => (
-              <button
-                key={color.name}
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setSelectedColor(color);
-                }}
-                className={cn(
-                  "h-3 w-3 rounded-full border transition-all",
-                  selectedColor.name === color.name
-                    ? "border-black scale-125 ring-1 ring-black"
-                    : "border-neutral-300 opacity-80 hover:opacity-100"
-                )}
-                style={{ backgroundColor: color.hex }}
-                title={color.name}
-                aria-label={color.name}
-              />
-            ))}
+          <div className="flex items-center gap-1.5 min-h-[16px]">
+            {product.colors && product.colors.length > 0 ? (
+              product.colors.map((color) => (
+                <button
+                  key={color.name}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSelectedColor(color);
+                  }}
+                  className={cn(
+                    "h-3 w-3 rounded-full border transition-all",
+                    selectedColor?.name === color.name
+                      ? "border-black scale-125 ring-1 ring-black"
+                      : "border-neutral-300 opacity-80 hover:opacity-100"
+                  )}
+                  style={{ backgroundColor: color.hex }}
+                  title={color.name}
+                  aria-label={color.name}
+                />
+              ))
+            ) : null}
           </div>
 
           {/* Pricing in EGP */}

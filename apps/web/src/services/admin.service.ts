@@ -23,7 +23,7 @@ export interface CreateProductPayload {
   tags?: string[];
   images?: { url: string; altText?: string; displayOrder?: number }[];
   variants?: {
-    sku: string;
+    sku?: string;
     colorId: string;
     sizeId: string;
     stock: number;
@@ -140,6 +140,43 @@ export const adminService = {
     return res.data.data;
   },
 
+  updateCategory: async (
+    id: string,
+    payload: {
+      name?: string;
+      slug?: string;
+      description?: string;
+      image?: string;
+      displayOrder?: number;
+      active?: boolean;
+    }
+  ): Promise<Category> => {
+    const res = await apiClient.patch<{ success: boolean; data: Category }>(
+      `/categories/${id}`,
+      payload
+    );
+    return res.data.data;
+  },
+
+  createCategory: async (payload: {
+    name: string;
+    slug?: string;
+    description?: string;
+    image?: string;
+    displayOrder?: number;
+    active?: boolean;
+  }): Promise<Category> => {
+    const res = await apiClient.post<{ success: boolean; data: Category }>(
+      "/categories",
+      payload
+    );
+    return res.data.data;
+  },
+
+  deleteCategory: async (id: string): Promise<void> => {
+    await apiClient.delete(`/categories/${id}`);
+  },
+
   getSizes: async (): Promise<{ id: string; name: string; code: string; displayOrder: number }[]> => {
     const res = await apiClient.get<{
       success: boolean;
@@ -154,5 +191,42 @@ export const adminService = {
       data: { id: string; name: string; code: string; hexCode: string }[];
     }>("/taxonomies/colors");
     return res.data.data;
+  },
+
+  createColor: async (payload: {
+    name: string;
+    hexCode: string;
+    code?: string;
+  }): Promise<{ id: string; name: string; code: string; hexCode: string }> => {
+    const res = await apiClient.post<{
+      success: boolean;
+      data: { id: string; name: string; code: string; hexCode: string };
+    }>("/taxonomies/colors", payload);
+    return res.data.data;
+  },
+
+  deleteColor: async (id: string): Promise<void> => {
+    await apiClient.delete(`/taxonomies/colors/${id}`);
+  },
+
+  uploadImages: async (
+    files: File[]
+  ): Promise<{ url: string; altText?: string; displayOrder: number }[]> => {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("images", file);
+    });
+
+    const res = await apiClient.post<{
+      success: boolean;
+      data: {
+        urls: string[];
+        images: { url: string; altText?: string; displayOrder: number }[];
+      };
+    }>("/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    return res.data.data.images;
   },
 };
