@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: vyre-api
+    env: node
+    region: frankfurt
+    plan: free
+    rootDir: apps/api
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
