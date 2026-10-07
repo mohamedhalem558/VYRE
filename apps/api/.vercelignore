@@ -1,0 +1,6 @@
+.env
+.env.*
+*.log
+test_*.ts
+check_admins.ts
+uploads
