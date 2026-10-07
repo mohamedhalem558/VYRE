@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "buildCommand": "npm run build --workspace=@vyre/shared && npm run build --workspace=@vyre/api",
+  "installCommand": "npm install",
+  "outputDirectory": "apps/api/dist",
+  "builds": [
+    {
+      "src": "apps/api/package.json",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "apps/api/src/server.ts"
+    }
+  ]
+}
