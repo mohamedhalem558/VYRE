@@ -4,11 +4,19 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import multer from "multer";
 
-const UPLOADS_DIR = path.join(process.cwd(), "uploads", "products");
+import os from "node:os";
 
-// Ensure upload directory exists
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+const UPLOADS_DIR = process.env.VERCEL
+  ? path.join(os.tmpdir(), "uploads", "products")
+  : path.join(process.cwd(), "uploads", "products");
+
+// Ensure upload directory exists safely without crashing read-only filesystems
+try {
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+} catch (_err) {
+  // Gracefully handle environments with restricted filesystem access
 }
 
 // Configure multer disk storage for multipart file uploads

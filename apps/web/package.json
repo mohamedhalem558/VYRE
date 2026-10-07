@@ -6,7 +6,8 @@
   "description": "VYRE - Modern E-Commerce Frontend for Egyptian Clothing Brand",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build:shared": "npm --prefix ../../packages/shared run build",
+    "build": "npm --prefix ../../packages/shared run build && tsc && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.{ts,tsx}\""

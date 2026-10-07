@@ -1,18 +1,17 @@
 import { PrismaClient } from "@prisma/client";
 
-declare global {
-  var prisma: PrismaClient | undefined;
-}
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
 
 export const prisma =
-  global.prisma ||
+  globalForPrisma.prisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
   });
 
-if (process.env.NODE_ENV !== "production") {
-  global.prisma = prisma;
-}
+// Cache instance on globalThis across serverless function invocations & hot reloading
+globalForPrisma.prisma = prisma;
 
 export async function checkDatabaseConnection(): Promise<boolean> {
   try {
