@@ -22,7 +22,14 @@ export function errorHandler(
   // Handle Prisma unique constraint violations
   if (err.code === "P2002") {
     statusCode = HTTP_STATUS.CONFLICT;
-    message = "A resource with this identifier already exists.";
+    const target = (err as any).meta?.target;
+    if (Array.isArray(target) && target.includes("email")) {
+      message = "An account with this email address already exists.";
+    } else if (Array.isArray(target) && target.includes("phoneNumber")) {
+      message = "An account with this phone number already exists.";
+    } else {
+      message = "A resource with this identifier already exists.";
+    }
   } else if (err.code === "P2025") {
     statusCode = HTTP_STATUS.NOT_FOUND;
     message = "Requested resource not found.";
@@ -35,7 +42,9 @@ export function errorHandler(
   res.status(statusCode).json({
     success: false,
     error: message,
+    message: message,
     code: err.code || (statusCode === 401 ? "UNAUTHORIZED" : statusCode === 403 ? "FORBIDDEN" : statusCode === 409 ? "CONFLICT" : "ERROR"),
-    details: process.env.NODE_ENV === "development" ? err.details || err.stack : undefined,
+    details: err.details,
+    stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
   });
 }

@@ -60,6 +60,7 @@ export interface RegisterDTO {
   firstName: string;
   lastName: string;
   phoneNumber?: string;
+  phone?: string;
 }
 
 export interface ForgotPasswordDTO {

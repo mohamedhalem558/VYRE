@@ -5,6 +5,42 @@ const AUTH_USER_KEY = "vyre_auth_user";
 const ACCESS_TOKEN_KEY = "vyre_access_token";
 const REFRESH_TOKEN_KEY = "vyre_refresh_token";
 
+function extractApiError(error: any, fallback: string): string {
+  if (!error) return fallback;
+
+  const data = error.response?.data;
+  if (data) {
+    if (Array.isArray(data.details) && data.details.length > 0) {
+      const messages = data.details
+        .map((d: any) => (typeof d === "string" ? d : d.message || d.field))
+        .filter(Boolean);
+      if (messages.length > 0) {
+        return messages.join(". ");
+      }
+    }
+    if (typeof data.error === "string" && data.error.trim()) {
+      return data.error.trim();
+    }
+    if (typeof data.message === "string" && data.message.trim()) {
+      return data.message.trim();
+    }
+  }
+
+  if (error.message === "Network Error") {
+    return "Unable to connect to the server. Please check your internet connection or try again shortly.";
+  }
+
+  if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
+    return "Server connection timed out. Please try again.";
+  }
+
+  if (typeof error.message === "string" && error.message.trim()) {
+    return error.message.trim();
+  }
+
+  return fallback;
+}
+
 export const authService = {
   getCurrentUser: (): User | null => {
     try {
@@ -54,22 +90,24 @@ export const authService = {
   login: async (email: string, password: string): Promise<User> => {
     try {
       const res = await apiClient.post<ApiResponse<AuthResponse>>("/auth/login", {
-        email,
+        email: email.trim(),
         password,
       });
 
       if (res.data?.success && res.data?.data) {
         const { user, tokens } = res.data.data;
-        localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
-        localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
+        if (tokens?.accessToken) {
+          localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
+        }
+        if (tokens?.refreshToken) {
+          localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
+        }
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
         return user;
       }
       throw new Error("Login failed. Unable to authenticate session.");
     } catch (error: any) {
-      const detailsMsg = error.response?.data?.details?.map((d: any) => d.message).join(". ");
-      const msg = detailsMsg || error.response?.data?.error || "Login failed. Please check your credentials.";
-      throw new Error(msg);
+      throw new Error(extractApiError(error, "Login failed. Please check your credentials."));
     }
   },
 
@@ -79,28 +117,33 @@ export const authService = {
     email: string;
     password?: string;
     phoneNumber?: string;
+    phone?: string;
   }): Promise<User> => {
     try {
+      const phoneVal = userData.phoneNumber || userData.phone || undefined;
       const res = await apiClient.post<ApiResponse<AuthResponse>>("/auth/register", {
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        email: userData.email,
+        firstName: userData.firstName.trim(),
+        lastName: userData.lastName.trim(),
+        email: userData.email.trim(),
         password: userData.password,
-        phoneNumber: userData.phoneNumber || undefined,
+        phoneNumber: phoneVal,
+        phone: phoneVal,
       });
 
       if (res.data?.success && res.data?.data) {
         const { user, tokens } = res.data.data;
-        localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
-        localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
+        if (tokens?.accessToken) {
+          localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
+        }
+        if (tokens?.refreshToken) {
+          localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
+        }
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
         return user;
       }
       throw new Error("Registration failed. Unable to create account.");
     } catch (error: any) {
-      const detailsMsg = error.response?.data?.details?.map((d: any) => d.message).join(". ");
-      const msg = detailsMsg || error.response?.data?.error || "Registration failed. Please check your input.";
-      throw new Error(msg);
+      throw new Error(extractApiError(error, "Registration failed. Please check your information."));
     }
   },
 

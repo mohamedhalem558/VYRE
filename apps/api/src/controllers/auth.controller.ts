@@ -1,10 +1,23 @@
 import { Request, Response, NextFunction } from "express";
 import { authService } from "../services/auth.service.js";
 
+const REFRESH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: (process.env.NODE_ENV === "production" ? "none" : "lax") as "none" | "lax",
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  path: "/",
+};
+
 export class AuthController {
   async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await authService.register(req.body);
+
+      if (result.tokens?.refreshToken) {
+        res.cookie("vyre_refresh_token", result.tokens.refreshToken, REFRESH_COOKIE_OPTIONS);
+      }
+
       res.status(201).json({
         success: true,
         message: "Account registered successfully",
@@ -18,6 +31,11 @@ export class AuthController {
   async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await authService.login(req.body);
+
+      if (result.tokens?.refreshToken) {
+        res.cookie("vyre_refresh_token", result.tokens.refreshToken, REFRESH_COOKIE_OPTIONS);
+      }
+
       res.status(200).json({
         success: true,
         message: "Authenticated successfully",
@@ -33,6 +51,7 @@ export class AuthController {
       if (req.user?.id) {
         await authService.logout(req.user.id);
       }
+      res.clearCookie("vyre_refresh_token", { path: "/" });
       res.status(200).json({
         success: true,
         message: "Logged out successfully",
@@ -44,8 +63,20 @@ export class AuthController {
 
   async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { refreshToken } = req.body;
+      const refreshToken = req.body?.refreshToken || req.cookies?.vyre_refresh_token;
+      if (!refreshToken) {
+        res.status(400).json({
+          success: false,
+          error: "Refresh token is required",
+        });
+        return;
+      }
       const result = await authService.refreshToken(refreshToken);
+
+      if (result.tokens?.refreshToken) {
+        res.cookie("vyre_refresh_token", result.tokens.refreshToken, REFRESH_COOKIE_OPTIONS);
+      }
+
       res.status(200).json({
         success: true,
         message: "Session refreshed successfully",

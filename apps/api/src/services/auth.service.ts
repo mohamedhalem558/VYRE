@@ -45,31 +45,62 @@ export class AuthService {
   }
 
   async register(data: RegisterInput): Promise<AuthResponse> {
-    const existing = await prisma.user.findUnique({
-      where: { email: data.email.toLowerCase() },
+    const normalizedEmail = data.email.trim().toLowerCase();
+    const existingEmail = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
     });
 
-    if (existing) {
-      const error: any = new Error("An account with this email already exists.");
+    if (existingEmail) {
+      const error: any = new Error("An account with this email address already exists.");
       error.statusCode = 409;
       throw error;
+    }
+
+    const rawPhone = data.phoneNumber || data.phone;
+    const normalizedPhone = rawPhone && rawPhone.trim() ? rawPhone.trim() : null;
+
+    if (normalizedPhone) {
+      const existingPhone = await prisma.user.findFirst({
+        where: { phoneNumber: normalizedPhone },
+      });
+      if (existingPhone) {
+        const error: any = new Error("An account with this phone number already exists.");
+        error.statusCode = 409;
+        throw error;
+      }
     }
 
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(data.password, salt);
 
-    const user = await prisma.user.create({
-      data: {
-        email: data.email.toLowerCase(),
-        passwordHash,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        phoneNumber: data.phoneNumber || null,
-        role: "CUSTOMER",
-        active: true,
-      },
-      include: { addresses: true },
-    });
+    let user;
+    try {
+      user = await prisma.user.create({
+        data: {
+          email: normalizedEmail,
+          passwordHash,
+          firstName: data.firstName.trim(),
+          lastName: data.lastName.trim(),
+          phoneNumber: normalizedPhone,
+          role: "CUSTOMER",
+          active: true,
+        },
+        include: { addresses: true },
+      });
+    } catch (err: any) {
+      if (err.code === "P2002") {
+        const target = err.meta?.target;
+        if (Array.isArray(target) && target.includes("phoneNumber")) {
+          const error: any = new Error("An account with this phone number already exists.");
+          error.statusCode = 409;
+          throw error;
+        }
+        const error: any = new Error("An account with this email address already exists.");
+        error.statusCode = 409;
+        throw error;
+      }
+      throw err;
+    }
 
     const accessToken = signAccessToken({
       userId: user.id,
@@ -99,14 +130,21 @@ export class AuthService {
   }
 
   async login(data: LoginInput): Promise<AuthResponse> {
+    const normalizedEmail = data.email.trim().toLowerCase();
     const user = await prisma.user.findUnique({
-      where: { email: data.email.toLowerCase() },
+      where: { email: normalizedEmail },
       include: { addresses: true },
     });
 
-    if (!user || !user.active) {
+    if (!user) {
       const error: any = new Error("Invalid email address or password.");
       error.statusCode = 401;
+      throw error;
+    }
+
+    if (!user.active) {
+      const error: any = new Error("This account is currently deactivated. Please contact support.");
+      error.statusCode = 403;
       throw error;
     }
 

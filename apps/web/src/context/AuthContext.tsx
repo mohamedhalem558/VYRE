@@ -17,6 +17,7 @@ interface AuthContextType {
     email: string;
     password?: string;
     phoneNumber?: string;
+    phone?: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
   forgotPassword: (email: string) => Promise<{ message: string; devResetToken?: string }>;
@@ -87,6 +88,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     email: string;
     password?: string;
     phoneNumber?: string;
+    phone?: string;
   }) => {
     const registered = await authService.register(data);
     setUser(registered);

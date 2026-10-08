@@ -1,14 +1,26 @@
 import axios from "axios";
 
-const rawApiUrl =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? "https://vyree.shop/api/v1" : "http://localhost:5000/api/v1");
-export const API_BASE_URL = rawApiUrl.replace(/\/+$/, "");
+function resolveApiBaseUrl(): string {
+  const envUrl = import.meta.env.VITE_API_URL;
+  let base = envUrl && typeof envUrl === "string" && envUrl.trim()
+    ? envUrl.trim()
+    : import.meta.env.PROD
+    ? "https://vyree.shop/api/v1"
+    : "http://localhost:5000/api/v1";
 
+  base = base.replace(/\/+$/, "");
+  if (!base.endsWith("/api/v1")) {
+    base = `${base}/api/v1`;
+  }
+  return base;
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 15000,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },

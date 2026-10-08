@@ -24,6 +24,11 @@ export function createApp(): Express {
     ? env.CLIENT_URL.split(",").map((o) => o.trim().replace(/\/+$/, ""))
     : [];
 
+  const productionOrigins = [
+    "https://www.vyree.shop",
+    "https://vyree.shop",
+  ];
+
   const localOrigins = [
     "http://localhost:5173",
     "http://localhost:3000",
@@ -31,7 +36,9 @@ export function createApp(): Express {
     "http://127.0.0.1:3000",
   ];
 
-  const allowedOrigins = Array.from(new Set([...configuredOrigins, ...localOrigins]));
+  const allowedOrigins = Array.from(
+    new Set([...configuredOrigins, ...productionOrigins, ...localOrigins])
+  );
 
   // CORS Configuration
   app.use(
@@ -44,8 +51,13 @@ export function createApp(): Express {
 
         const normalizedOrigin = origin.replace(/\/+$/, "");
 
-        // Allow explicitly configured origins or localhost
+        // Allow explicitly configured origins or localhost or production domains
         if (allowedOrigins.includes(normalizedOrigin)) {
+          return callback(null, true);
+        }
+
+        // Allow any vyree.shop subdomain
+        if (/^https:\/\/([a-zA-Z0-9-]+\.)*vyree\.shop$/.test(normalizedOrigin)) {
           return callback(null, true);
         }
 
@@ -63,7 +75,8 @@ export function createApp(): Express {
       },
       credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
+      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+      exposedHeaders: ["Set-Cookie"],
     })
   );
 

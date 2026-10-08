@@ -21,8 +21,20 @@ export const LoginPage: React.FC = () => {
     setError("");
     setLoading(true);
 
+    if (!email.trim()) {
+      setError("Please enter your email address.");
+      setLoading(false);
+      return;
+    }
+
+    if (!password) {
+      setError("Please enter your password.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const loggedUser = await login(email, password);
+      const loggedUser = await login(email.trim(), password);
       const redirectState = (location.state as { from?: { pathname: string } })?.from?.pathname;
       let targetPath = redirectState;
 
@@ -40,7 +52,7 @@ export const LoginPage: React.FC = () => {
 
       navigate(targetPath, { replace: true });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Invalid credentials");
+      setError(err instanceof Error ? err.message : "Invalid email or password. Please try again.");
     } finally {
       setLoading(false);
     }

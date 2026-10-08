@@ -28,33 +28,54 @@ export const RegisterPage: React.FC = () => {
       return;
     }
 
+    if (!firstName.trim()) {
+      setError("Please enter your first name.");
+      return;
+    }
+
+    if (!lastName.trim()) {
+      setError("Please enter your last name.");
+      return;
+    }
+
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError("Please provide a valid email address.");
+      return;
+    }
+
     if (password.length < 8) {
       setError("Password must be at least 8 characters long.");
       return;
     }
 
     if (!/[A-Z]/.test(password)) {
-      setError("Password must contain at least one uppercase letter.");
+      setError("Password must contain at least one uppercase letter (A-Z).");
       return;
     }
 
     if (!/[a-z]/.test(password)) {
-      setError("Password must contain at least one lowercase letter.");
+      setError("Password must contain at least one lowercase letter (a-z).");
       return;
     }
 
-    if (!(/[0-9]|[!@#$%^&*]/.test(password))) {
-      setError("Password must contain at least one number or special character.");
+    if (!/[\d\W_]/.test(password)) {
+      setError("Password must contain at least one number (0-9) or symbol (!@#$%^&*).");
       return;
     }
 
     setLoading(true);
 
     try {
-      await register({ firstName, lastName, email, password, phoneNumber });
+      await register({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        password,
+        phoneNumber: phoneNumber.trim() || undefined,
+      });
       navigate("/account");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Registration failed. Please try again.");
+      setError(err instanceof Error ? err.message : "Registration failed. Please check your information.");
     } finally {
       setLoading(false);
     }
