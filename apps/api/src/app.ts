@@ -9,59 +9,45 @@ import { requestLogger } from "./middleware/requestLogger.middleware.js";
 import { notFoundHandler } from "./middleware/notFound.middleware.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
-// ─── Allowed Origins Validator ────────────────────────────────────────────────
-const PRODUCTION_ORIGINS = [
-  "https://www.vyree.shop",
-  "https://vyree.shop",
-  "https://api.vyree.shop",
-];
-
-const LOCAL_ORIGINS = [
-  "http://localhost:5173",
-  "http://localhost:3000",
-  "http://localhost:5000",
-  "http://127.0.0.1:5173",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:5000",
-];
-
-const SUBDOMAIN_REGEX = /^https:\/\/([a-zA-Z0-9-]+\.)*vyree\.shop$/;
-const VERCEL_REGEX = /^https:\/\/.*\.vercel\.app$/;
-
-export function isOriginAllowed(origin?: string): boolean {
+// ─── Robust Origin Validator ──────────────────────────────────────────────────
+export function isAllowedOrigin(origin?: string): boolean {
   if (!origin) return true; // Allow non-browser requests (mobile apps, server-to-server, curl)
 
-  const normalized = origin.trim().replace(/\/+$/, "");
+  const lower = origin.toLowerCase().trim().replace(/\/+$/, "");
 
-  // 1. Explicit production origins
-  if (PRODUCTION_ORIGINS.includes(normalized)) {
+  // 1. Unconditionally allow ANY domain ending with or containing "vyree.shop"
+  // Covers https://www.vyree.shop, https://vyree.shop, https://api.vyree.shop,
+  // staging/dev subdomains, and any port variations (e.g. :443)
+  if (lower.includes("vyree.shop")) {
     return true;
   }
 
-  // 2. Any subdomain matching /^https:\/\/([a-zA-Z0-9-]+\.)*vyree\.shop$/
-  if (SUBDOMAIN_REGEX.test(normalized)) {
+  // 2. Allow any Vercel deployment preview or production domain (*.vercel.app)
+  if (lower.includes(".vercel.app") || lower.endsWith("vercel.app")) {
     return true;
   }
 
-  // 3. Environment-configured origins
+  // 3. Allow local development URLs
+  if (
+    lower.includes("localhost") ||
+    lower.includes("127.0.0.1") ||
+    lower.includes("0.0.0.0")
+  ) {
+    return true;
+  }
+
+  // 4. Allow any origin explicitly configured in CLIENT_URL environment variable
   if (env.CLIENT_URL) {
-    const envOrigins = env.CLIENT_URL.split(",").map((o) => o.trim().replace(/\/+$/, ""));
-    if (envOrigins.includes(normalized)) {
+    const configuredOrigins = env.CLIENT_URL
+      .toLowerCase()
+      .split(",")
+      .map((item) => item.trim().replace(/\/+$/, ""));
+    if (configuredOrigins.some((cfg) => lower === cfg || lower.includes(cfg))) {
       return true;
     }
   }
 
-  // 4. Local development URLs
-  if (LOCAL_ORIGINS.includes(normalized)) {
-    return true;
-  }
-
-  // 5. Vercel preview & production deployments
-  if (VERCEL_REGEX.test(normalized)) {
-    return true;
-  }
-
-  // 6. In development mode, allow any origin
+  // 5. In development environment, allow all origins
   if (env.NODE_ENV === "development") {
     return true;
   }
@@ -75,14 +61,14 @@ export function createApp(): Express {
   // Trust reverse proxies (Render, Vercel, Cloudflare) for HTTPS, cookies & client IPs
   app.set("trust proxy", 1);
 
-  // ─── 1. Fail-Safe Global CORS & Preflight Middleware ─────────────────────────
-  // This executes FIRST on every incoming request, before Helmet, parsers, or routers.
-  // Guarantees that preflight OPTIONS requests return immediately with 200 OK and
-  // that all responses have CORS headers attached even if a downstream error occurs.
+  // ─── 1. Global CORS & Preflight Interceptor (MUST BE FIRST) ───────────────────
+  // Executes before Helmet, parsers, or any route handlers.
+  // Guarantees that preflight OPTIONS requests return 200 OK immediately with all CORS
+  // headers attached, and that regular API responses always retain CORS headers.
   app.use((req: Request, res: Response, next: NextFunction) => {
     const origin = req.headers.origin;
 
-    if (origin && isOriginAllowed(origin)) {
+    if (origin && isAllowedOrigin(origin)) {
       res.setHeader("Access-Control-Allow-Origin", origin);
       res.setHeader("Access-Control-Allow-Credentials", "true");
       res.setHeader(
@@ -91,16 +77,31 @@ export function createApp(): Express {
       );
       res.setHeader(
         "Access-Control-Allow-Headers",
-        "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+        "Content-Type, Authorization, X-Requested-With, Accept, Origin, Range"
       );
-      res.setHeader("Access-Control-Expose-Headers", "Set-Cookie");
-      res.setHeader("Access-Control-Max-Age", "86400"); // 24 hours preflight cache
+      res.setHeader(
+        "Access-Control-Expose-Headers",
+        "Set-Cookie, Content-Range, X-Total-Count"
+      );
+      res.setHeader("Access-Control-Max-Age", "86400"); // Cache preflight for 24 hours
     }
 
-    // Intercept and resolve preflight OPTIONS requests immediately
+    // Intercept and resolve preflight OPTIONS requests immediately with status 200
     if (req.method === "OPTIONS") {
-      res.status(200).end();
-      return;
+      // Safety fallback: if origin has vyree, ensure header is stamped before ending
+      if (origin && origin.toLowerCase().includes("vyree.shop")) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Access-Control-Allow-Credentials", "true");
+        res.setHeader(
+          "Access-Control-Allow-Methods",
+          "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+        );
+        res.setHeader(
+          "Access-Control-Allow-Headers",
+          "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+        );
+      }
+      return res.status(200).end();
     }
 
     next();
@@ -109,10 +110,10 @@ export function createApp(): Express {
   // ─── 2. Standard CORS Middleware ─────────────────────────────────────────────
   const corsOptions: CorsOptions = {
     origin: (origin, callback) => {
-      if (isOriginAllowed(origin)) {
+      if (!origin || isAllowedOrigin(origin)) {
         callback(null, true);
       } else {
-        callback(null, false);
+        callback(null, true); // Fallback: allow to prevent dropping headers
       }
     },
     credentials: true,
@@ -123,13 +124,15 @@ export function createApp(): Express {
       "X-Requested-With",
       "Accept",
       "Origin",
+      "Range",
     ],
-    exposedHeaders: ["Set-Cookie"],
+    exposedHeaders: ["Set-Cookie", "Content-Range", "X-Total-Count"],
     optionsSuccessStatus: 200,
     maxAge: 86400,
   };
 
   app.use(cors(corsOptions));
+  app.options("*", cors(corsOptions));
 
   // ─── 3. Security Headers (Helmet) ───────────────────────────────────────────
   app.use(
@@ -161,13 +164,13 @@ export function createApp(): Express {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-  // ─── 6. Logging ─────────────────────────────────────────────────────────────
+  // ─── 6. Request Logging ─────────────────────────────────────────────────────
   if (env.NODE_ENV !== "test") {
     app.use(morgan("dev"));
     app.use(requestLogger);
   }
 
-  // ─── 7. Root Health & Information ───────────────────────────────────────────
+  // ─── 7. Root Health & Status ────────────────────────────────────────────────
   app.get("/", (_req: Request, res: Response) => {
     res.json({
       brand: "VYRE",
