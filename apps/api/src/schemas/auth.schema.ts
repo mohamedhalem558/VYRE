@@ -58,19 +58,34 @@ export const forgotPasswordSchema = z.object({
     .toLowerCase(),
 });
 
-export const resetPasswordSchema = z.object({
-  token: z.string().trim().min(1, "Reset token is required"),
-  password: z
-    .string({ required_error: "Password is required" })
-    .min(8, "Password must be at least 8 characters")
-    .max(128, "Password cannot exceed 128 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter (A-Z)")
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter (a-z)")
-    .regex(/[\d\W_]/, "Password must contain at least one number (0-9) or symbol (!@#$%^&*)"),
-});
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().trim().optional(),
+    otp: z.string().trim().optional(),
+    code: z.string().trim().optional(),
+    email: z
+      .string()
+      .trim()
+      .email("Please provide a valid email address")
+      .toLowerCase()
+      .optional()
+      .or(z.literal("")),
+    password: z
+      .string({ required_error: "Password is required" })
+      .min(8, "Password must be at least 8 characters")
+      .max(128, "Password cannot exceed 128 characters")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter (A-Z)")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter (a-z)")
+      .regex(/[\d\W_]/, "Password must contain at least one number (0-9) or symbol (!@#$%^&*)"),
+  })
+  .refine((data) => !!(data.token || data.otp || data.code), {
+    message: "A 6-digit OTP code or reset token is required",
+    path: ["otp"],
+  });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+

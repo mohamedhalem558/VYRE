@@ -239,12 +239,13 @@ export class AuthService {
     };
   }
 
-  async forgotPassword(email: string): Promise<{ message: string; devResetToken?: string }> {
+  async forgotPassword(email: string): Promise<{ message: string; devOtp?: string; devResetToken?: string }> {
     const GENERIC_MESSAGE =
-      "If an account exists with this email, a password reset link has been dispatched.";
+      "If an account exists with this email, a 6-digit verification code has been dispatched.";
 
+    const normalizedEmail = email.toLowerCase().trim();
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: normalizedEmail },
     });
 
     // Always respond generically to prevent email enumeration
@@ -252,57 +253,86 @@ export class AuthService {
       return { message: GENERIC_MESSAGE };
     }
 
-    // Generate a cryptographically secure random token (64 hex chars)
-    const rawToken = crypto.randomBytes(32).toString("hex");
+    // Generate a secure 6-digit numeric OTP code
+    const otp = crypto.randomInt(100000, 999999).toString();
 
-    // Hash the token before storing — only the hash lives in the DB
-    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+    // Hash the OTP before storing in database for security
+    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    // Code is valid for 15 minutes
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        resetPasswordToken: hashedToken,
+        resetPasswordToken: hashedOtp,
         resetPasswordExpires: expiresAt,
       },
     });
 
-    // Send the real reset email — the raw (unhashed) token goes to the user
+    // Send the real reset email with the 6-digit OTP
     try {
-      await sendPasswordResetEmail(user.email, rawToken);
+      await sendPasswordResetEmail(user.email, otp);
     } catch (emailError) {
-      // Log but don't expose email errors to the caller
       console.error("[AuthService] Failed to send password reset email:", emailError);
     }
 
-    const response: { message: string; devResetToken?: string } = {
-      message: GENERIC_MESSAGE,
+    const response: { message: string; devOtp?: string; devResetToken?: string } = {
+      message: "A 6-digit verification code has been sent to your email address.",
     };
 
-    // Expose the raw token only in development (for end-to-end testing without a real inbox)
+    // Expose OTP in development for fast testing
     if (process.env.NODE_ENV === "development") {
-      response.devResetToken = rawToken;
+      response.devOtp = otp;
+      response.devResetToken = otp;
     }
 
     return response;
   }
 
   async resetPassword(data: ResetPasswordInput): Promise<{ message: string }> {
-    // Hash the incoming token to match what's stored in the DB
-    const trimmedToken = data.token.trim();
-    const hashedToken = crypto.createHash("sha256").update(trimmedToken).digest("hex");
+    const code = (data.otp || data.token || data.code || "").trim();
 
-    const user = await prisma.user.findFirst({
-      where: {
-        resetPasswordToken: hashedToken,
-        resetPasswordExpires: { gt: new Date() },
-        active: true,
-      },
-    });
+    if (!code) {
+      const error: any = new Error("A 6-digit verification code or reset token is required.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const hashedCode = crypto.createHash("sha256").update(code).digest("hex");
+    let user;
+
+    if (data.email && data.email.trim()) {
+      const targetUser = await prisma.user.findUnique({
+        where: { email: data.email.toLowerCase().trim() },
+      });
+
+      if (
+        targetUser &&
+        targetUser.active &&
+        targetUser.resetPasswordExpires &&
+        targetUser.resetPasswordExpires > new Date() &&
+        (targetUser.resetPasswordToken === hashedCode || targetUser.resetPasswordToken === code)
+      ) {
+        user = targetUser;
+      }
+    } else {
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { resetPasswordToken: hashedCode },
+            { resetPasswordToken: code },
+          ],
+          resetPasswordExpires: { gt: new Date() },
+          active: true,
+        },
+      });
+    }
 
     if (!user) {
-      const error: any = new Error("Password reset token is invalid or has expired.");
+      const error: any = new Error(
+        "Invalid or expired verification code. Please request a new code and try again."
+      );
       error.statusCode = 400;
       throw error;
     }

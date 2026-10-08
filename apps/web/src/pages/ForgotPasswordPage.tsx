@@ -62,9 +62,9 @@ export const ForgotPasswordPage: React.FC = () => {
           <div className="space-y-6 text-center">
             <div className="p-4 rounded-xs border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs space-y-2">
               <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto" />
-              <p className="font-bold">Password Reset Link Sent</p>
+              <p className="font-bold text-sm">6-Digit Verification Code Sent</p>
               <p className="text-neutral-600">
-                We have processed a secure reset request for <strong>{email}</strong>.
+                We have dispatched a 6-digit verification code to <strong>{email}</strong>. It is valid for 15 minutes.
               </p>
             </div>
 
@@ -72,18 +72,24 @@ export const ForgotPasswordPage: React.FC = () => {
               <div className="p-4 rounded-xs border border-neutral-200 bg-neutral-50 text-xs space-y-2 text-left">
                 <div className="flex items-center gap-2 text-neutral-900 font-bold">
                   <KeyRound className="h-4 w-4" />
-                  <span>Development Reset Token</span>
+                  <span>Development Verification Code (OTP)</span>
                 </div>
-                <p className="text-neutral-700 break-all font-mono text-[11px] bg-white p-2 rounded border border-neutral-200">
+                <p className="text-neutral-900 font-mono text-base font-bold tracking-widest bg-white p-2.5 rounded border border-neutral-200 text-center">
                   {devToken}
                 </p>
-                <Link to={`/reset-password?token=${devToken}`}>
+                <Link to={`/reset-password?token=${devToken}&email=${encodeURIComponent(email)}`}>
                   <Button variant="primary" size="sm" className="w-full mt-2">
-                    Proceed to Reset Form
+                    Proceed with Code ({devToken})
                   </Button>
                 </Link>
               </div>
             )}
+
+            <Link to={`/reset-password?email=${encodeURIComponent(email)}`}>
+              <Button variant="primary" size="lg" className="w-full text-xs font-bold uppercase tracking-wider mb-2">
+                Enter 6-Digit Code & Choose Password
+              </Button>
+            </Link>
 
             <Link to="/login">
               <Button variant="outline" size="sm" className="w-full">
@@ -92,6 +98,7 @@ export const ForgotPasswordPage: React.FC = () => {
             </Link>
           </div>
         ) : (
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="Email Address"

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.js";
 import { Logo } from "../components/brand/Logo.js";
 import { Button } from "../components/ui/button.js";
@@ -8,7 +8,9 @@ import { Lock, Mail, Phone, ArrowRight } from "lucide-react";
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { register } = useAuth();
+
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -73,8 +75,10 @@ export const RegisterPage: React.FC = () => {
         password,
         phoneNumber: phoneNumber.trim() || undefined,
       });
-      navigate("/account");
+      const redirectState = (location.state as { from?: { pathname: string } })?.from?.pathname;
+      navigate(redirectState || "/account", { replace: true });
     } catch (err: unknown) {
+
       setError(err instanceof Error ? err.message : "Registration failed. Please check your information.");
     } finally {
       setLoading(false);

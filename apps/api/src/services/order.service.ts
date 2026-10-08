@@ -7,6 +7,12 @@ import {
   OrderListResponse,
   ShippingRateDTO,
 } from "@vyre/shared";
+import {
+  sendOrderPlacedEmail,
+  sendOrderConfirmedEmail,
+  sendOrderShippedEmail,
+  sendOrderDeliveredEmail,
+} from "../utils/email.js";
 
 const FREE_SHIPPING_THRESHOLD = 1500; // in EGP
 
@@ -156,7 +162,7 @@ export class OrderService {
   async createOrder(userId: string, input: CreateOrderInput): Promise<OrderDTO> {
     const shippingRates = await this.getShippingRates();
 
-    return await prisma.$transaction(async (tx) => {
+    const createdOrder = await prisma.$transaction(async (tx) => {
       // 1. Load user's cart
       const cart = await tx.cart.findUnique({
         where: { userId },
@@ -398,6 +404,16 @@ export class OrderService {
 
       return this.formatOrder(fullCreatedOrder);
     });
+
+    // Automated Email: Order Placed / Pending Confirmation
+    sendOrderPlacedEmail(createdOrder).catch((err) => {
+      console.error(
+        `[OrderService] Failed to send order placed email for #${createdOrder.orderNumber}:`,
+        err
+      );
+    });
+
+    return createdOrder;
   }
 
   /**
@@ -552,7 +568,33 @@ export class OrderService {
       },
     });
 
-    return this.formatOrder(updated);
+    const formattedUpdated = this.formatOrder(updated);
+
+    // Automated Email Notifications based on Order Stage
+    if (input.status === OrderStatus.CONFIRMED && existing.orderStatus !== OrderStatus.CONFIRMED) {
+      sendOrderConfirmedEmail(formattedUpdated).catch((err) =>
+        console.error(
+          `[OrderService] Failed to send order confirmed email for #${formattedUpdated.orderNumber}:`,
+          err
+        )
+      );
+    } else if (input.status === OrderStatus.SHIPPED && existing.orderStatus !== OrderStatus.SHIPPED) {
+      sendOrderShippedEmail(formattedUpdated, input.trackingNumber).catch((err) =>
+        console.error(
+          `[OrderService] Failed to send order shipped email for #${formattedUpdated.orderNumber}:`,
+          err
+        )
+      );
+    } else if (input.status === OrderStatus.DELIVERED && existing.orderStatus !== OrderStatus.DELIVERED) {
+      sendOrderDeliveredEmail(formattedUpdated).catch((err) =>
+        console.error(
+          `[OrderService] Failed to send order delivered email for #${formattedUpdated.orderNumber}:`,
+          err
+        )
+      );
+    }
+
+    return formattedUpdated;
   }
 }
 

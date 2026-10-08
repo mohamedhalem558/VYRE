@@ -23,13 +23,13 @@ const envSchema = z.object({
   // ─── Email / SMTP ───────────────────────────────────────────────────────────
   // Leave SMTP_HOST empty in development to fall back to Ethereal (fake SMTP).
   // Set all variables below for production.
-  SMTP_HOST: z.string().optional().default(""),
-  SMTP_PORT: z.coerce.number().optional().default(587),
-  SMTP_USER: z.string().optional().default(""),
-  SMTP_PASSWORD: z.string().optional().default(""),
-  EMAIL_FROM: z.string().optional().default("noreply@vyre.store"),
-  EMAIL_FROM_NAME: z.string().optional().default("VYRE."),
-  RESET_PASSWORD_URL: z.string().optional().default(""),
+  SMTP_HOST: z.string().default(process.env.SMTP_HOST || ""),
+  SMTP_PORT: z.coerce.number().default(Number(process.env.SMTP_PORT) || 587),
+  SMTP_USER: z.string().default(process.env.SMTP_USER || ""),
+  SMTP_PASSWORD: z.string().default(process.env.SMTP_PASSWORD || process.env.SMTP_PASS || ""),
+  EMAIL_FROM: z.string().default(process.env.EMAIL_FROM || process.env.FROM_EMAIL || "noreply@vyree.shop"),
+  EMAIL_FROM_NAME: z.string().default(process.env.EMAIL_FROM_NAME || "VYRE."),
+  RESET_PASSWORD_URL: z.string().default(process.env.RESET_PASSWORD_URL || ""),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -40,3 +40,4 @@ if (!parsed.success) {
 }
 
 export const env = parsed.data;
+

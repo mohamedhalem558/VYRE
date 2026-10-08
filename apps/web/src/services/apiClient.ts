@@ -5,7 +5,7 @@ function resolveApiBaseUrl(): string {
   let base = envUrl && typeof envUrl === "string" && envUrl.trim()
     ? envUrl.trim()
     : import.meta.env.PROD
-    ? "https://vyree.shop/api/v1"
+    ? "https://api.vyree.shop/api/v1"
     : "http://localhost:5000/api/v1";
 
   base = base.replace(/\/+$/, "");

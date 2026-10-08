@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Logo } from "../components/brand/Logo.js";
 import { Button } from "../components/ui/button.js";
 import { Input } from "../components/ui/input.js";
-import { Lock, KeyRound, CheckCircle2, AlertCircle } from "lucide-react";
+import { Lock, KeyRound, CheckCircle2, AlertCircle, Mail, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext.js";
 
 export const ResetPasswordPage: React.FC = () => {
@@ -11,17 +11,23 @@ export const ResetPasswordPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { resetPassword } = useAuth();
 
-  const [token, setToken] = useState("");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const urlToken = searchParams.get("token");
+    const urlToken = searchParams.get("token") || searchParams.get("otp") || searchParams.get("code");
     if (urlToken) {
-      setToken(urlToken);
+      setCode(urlToken.trim());
+    }
+    const urlEmail = searchParams.get("email");
+    if (urlEmail) {
+      setEmail(urlEmail.trim());
     }
   }, [searchParams]);
 
@@ -29,8 +35,9 @@ export const ResetPasswordPage: React.FC = () => {
     e.preventDefault();
     setError("");
 
-    if (!token.trim()) {
-      setError("Reset token is required. Please check your reset link or enter the token.");
+    const cleanCode = code.trim();
+    if (!cleanCode) {
+      setError("Please enter the 6-digit verification code sent to your email.");
       return;
     }
 
@@ -40,37 +47,36 @@ export const ResetPasswordPage: React.FC = () => {
     }
 
     if (!/[A-Z]/.test(password)) {
-      setError("Password must contain at least one uppercase letter.");
+      setError("Password must contain at least one uppercase letter (A-Z).");
       return;
     }
 
     if (!/[a-z]/.test(password)) {
-      setError("Password must contain at least one lowercase letter.");
+      setError("Password must contain at least one lowercase letter (a-z).");
       return;
     }
 
-    if (!(/[0-9]/.test(password) || /[!@#$%^&*]/.test(password))) {
-      setError("Password must contain at least one number or special character.");
+    if (!/[\d\W_]/.test(password)) {
+      setError("Password must contain at least one number (0-9) or symbol (!@#$%^&*).");
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError("Passwords do not match. Please re-enter.");
       return;
     }
 
     setLoading(true);
     try {
-      await resetPassword(token.trim(), password);
+      await resetPassword(cleanCode, password, email.trim() || undefined);
       setSuccess(true);
       setTimeout(() => {
-        navigate("/login");
+        navigate("/login", { replace: true });
       }, 2500);
     } catch (err: any) {
       setError(
         err.message ||
-        err.response?.data?.error ||
-        "Failed to reset password. The reset link may have expired or is invalid."
+        "Failed to update password. The verification code may have expired or is invalid."
       );
     } finally {
       setLoading(false);
@@ -88,15 +94,24 @@ export const ResetPasswordPage: React.FC = () => {
             Choose New Password
           </h1>
           <p className="text-xs text-neutral-500">
-            Set a new secure password for your VYRE. account.
+            Enter the 6-digit code from your email to update your account password.
           </p>
         </div>
 
         {success ? (
-          <div className="p-4 rounded-xs border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs text-center space-y-2">
-            <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto" />
-            <p className="font-bold">Password Reset Successful</p>
-            <p className="text-neutral-600">Your password has been updated. Redirecting to Sign In...</p>
+          <div className="p-6 rounded-xs border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs text-center space-y-3">
+            <CheckCircle2 className="h-10 w-10 text-emerald-600 mx-auto" />
+            <p className="font-bold text-sm">Password Updated Successfully!</p>
+            <p className="text-neutral-600">
+              Your new password is now active. Redirecting you to Sign In...
+            </p>
+            <div className="pt-2">
+              <Link to="/login">
+                <Button variant="primary" size="sm" className="w-full">
+                  Sign In Now
+                </Button>
+              </Link>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -107,31 +122,49 @@ export const ResetPasswordPage: React.FC = () => {
               </div>
             )}
 
-            {!searchParams.get("token") && (
-              <Input
-                label="Reset Token"
-                type="text"
-                placeholder="Paste your reset token here"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                leftIcon={<KeyRound className="h-4 w-4 text-neutral-400" />}
-                required
-              />
-            )}
-
             <Input
-              label="New Password"
-              type="password"
-              placeholder="Min. 8 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              leftIcon={<Lock className="h-4 w-4 text-neutral-400" />}
-              required
+              label="Registered Email"
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              leftIcon={<Mail className="h-4 w-4 text-neutral-400" />}
+              helperText="The email address you requested the reset code for."
             />
 
             <Input
+              label="6-Digit Verification Code (OTP)"
+              type="text"
+              placeholder="e.g. 583921"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              leftIcon={<KeyRound className="h-4 w-4 text-neutral-400" />}
+              helperText="Check your inbox or spam folder for your 6-digit code."
+              required
+            />
+
+            <div className="relative">
+              <Input
+                label="New Password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Min. 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                leftIcon={<Lock className="h-4 w-4 text-neutral-400" />}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-8 text-neutral-400 hover:text-neutral-700 text-xs"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+
+            <Input
               label="Confirm New Password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder="Re-enter password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -139,9 +172,15 @@ export const ResetPasswordPage: React.FC = () => {
               required
             />
 
-            <p className="text-[11px] text-neutral-500">
-              Must be at least 8 characters with uppercase, lowercase, and a number or symbol.
-            </p>
+            <div className="text-[11px] text-neutral-500 bg-neutral-50 p-2.5 rounded border border-neutral-200 space-y-1">
+              <div className="font-semibold text-neutral-700">Password Requirements:</div>
+              <ul className="list-disc list-inside text-neutral-600 space-y-0.5">
+                <li>Minimum 8 characters</li>
+                <li>At least one uppercase letter (A-Z)</li>
+                <li>At least one lowercase letter (a-z)</li>
+                <li>At least one number or symbol (!@#$%^&*)</li>
+              </ul>
+            </div>
 
             <Button
               type="submit"
@@ -158,7 +197,7 @@ export const ResetPasswordPage: React.FC = () => {
                 to="/forgot-password"
                 className="text-xs text-neutral-500 hover:text-black font-semibold"
               >
-                Expired or invalid link? Request a new reset link
+                Did not receive the code? Request a new one
               </Link>
             </div>
           </form>

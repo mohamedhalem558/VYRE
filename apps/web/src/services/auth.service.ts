@@ -159,33 +159,49 @@ export const authService = {
     }
   },
 
-  forgotPassword: async (email: string): Promise<{ message: string; devResetToken?: string }> => {
+  forgotPassword: async (
+    email: string
+  ): Promise<{ message: string; devOtp?: string; devResetToken?: string }> => {
     try {
-      const res = await apiClient.post("/auth/forgot-password", { email });
+      const res = await apiClient.post("/auth/forgot-password", { email: email.trim() });
       if (res.data?.success) {
-        return res.data.data || { message: res.data.message || "Reset link sent" };
+        return res.data.data || { message: res.data.message || "Verification code dispatched" };
       }
+      return { message: "A 6-digit verification code has been dispatched to your email." };
     } catch (error: any) {
-      const detailsMsg = error.response?.data?.details?.map((d: any) => d.message).join(". ");
-      const msg = detailsMsg || error.response?.data?.error || "Failed to process forgot password request.";
-      throw new Error(msg);
+      throw new Error(
+        extractApiError(error, "Failed to process forgot password request. Please try again.")
+      );
     }
-    return { message: "If an account exists, a reset link has been dispatched." };
   },
 
-  resetPassword: async (token: string, password: string): Promise<string> => {
+  resetPassword: async (
+    tokenOrOtp: string,
+    password: string,
+    email?: string
+  ): Promise<string> => {
     try {
-      const res = await apiClient.post("/auth/reset-password", { token, password });
+      const payload: Record<string, any> = {
+        otp: tokenOrOtp.trim(),
+        token: tokenOrOtp.trim(),
+        password,
+      };
+      if (email && email.trim()) {
+        payload.email = email.trim();
+      }
+
+      const res = await apiClient.post("/auth/reset-password", payload);
       if (res.data?.success) {
         return res.data.message || "Password reset successfully.";
       }
+      return "Password reset successfully.";
     } catch (error: any) {
-      const detailsMsg = error.response?.data?.details?.map((d: any) => d.message).join(". ");
-      const msg = detailsMsg || error.response?.data?.error || "Password reset failed.";
-      throw new Error(msg);
+      throw new Error(
+        extractApiError(error, "Failed to reset password. The code may be invalid or expired.")
+      );
     }
-    return "Password reset successfully.";
   },
+
 
   updateProfile: async (updates: Partial<User>): Promise<User> => {
     const current = authService.getCurrentUser();

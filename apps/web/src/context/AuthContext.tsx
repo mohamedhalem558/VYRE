@@ -20,8 +20,10 @@ interface AuthContextType {
     phone?: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
-  forgotPassword: (email: string) => Promise<{ message: string; devResetToken?: string }>;
-  resetPassword: (token: string, pass: string) => Promise<string>;
+  forgotPassword: (
+    email: string
+  ) => Promise<{ message: string; devOtp?: string; devResetToken?: string }>;
+  resetPassword: (tokenOrOtp: string, pass: string, email?: string) => Promise<string>;
   updateProfile: (data: Partial<User>) => Promise<void>;
   saveAddress: (address: Omit<Address, "id"> & { id?: string }) => Promise<Address>;
   deleteAddress: (addressId: string) => Promise<void>;
@@ -103,8 +105,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return authService.forgotPassword(email);
   };
 
-  const resetPassword = async (token: string, pass: string) => {
-    return authService.resetPassword(token, pass);
+  const resetPassword = async (tokenOrOtp: string, pass: string, email?: string) => {
+    return authService.resetPassword(tokenOrOtp, pass, email);
   };
 
   const updateProfile = async (data: Partial<User>) => {
