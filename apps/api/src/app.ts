@@ -88,6 +88,7 @@ export function createApp(): Express {
 
   // Mount standard CORS at the very top of the middleware pipeline
   app.use(cors(corsOptions));
+  app.options("*", cors(corsOptions));
 
   // ─── Security Headers (Helmet) ───────────────────────────────────────────────
   app.use(
