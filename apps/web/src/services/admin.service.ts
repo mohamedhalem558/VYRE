@@ -182,7 +182,27 @@ export const adminService = {
       success: boolean;
       data: { id: string; name: string; code: string; displayOrder: number }[];
     }>("/taxonomies/sizes");
+    return res.data?.data || [];
+  },
+
+  createSize: async (payload: {
+    name: string;
+    code: string;
+    displayOrder?: number;
+  }): Promise<{ id: string; name: string; code: string; displayOrder: number }> => {
+    const res = await apiClient.post<{
+      success: boolean;
+      data: { id: string; name: string; code: string; displayOrder: number };
+    }>("/taxonomies/sizes", payload);
     return res.data.data;
+  },
+
+  seedSizes: async (): Promise<{ id: string; name: string; code: string; displayOrder: number }[]> => {
+    const res = await apiClient.post<{
+      success: boolean;
+      data: { id: string; name: string; code: string; displayOrder: number }[];
+    }>("/taxonomies/sizes/seed");
+    return res.data?.data || [];
   },
 
   getColors: async (): Promise<{ id: string; name: string; code: string; hexCode: string }[]> => {

@@ -92,6 +92,12 @@ export const AdminProductsPage: React.FC = () => {
   const [customColorHex, setCustomColorHex] = useState("#0a0a0a");
   const [isAddingColor, setIsAddingColor] = useState(false);
 
+  // Custom Size Creation state
+  const [showAddCustomSize, setShowAddCustomSize] = useState(false);
+  const [customSizeName, setCustomSizeName] = useState("");
+  const [customSizeCode, setCustomSizeCode] = useState("");
+  const [isAddingSize, setIsAddingSize] = useState(false);
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -101,18 +107,30 @@ export const AdminProductsPage: React.FC = () => {
           limit: 12,
           search: search || undefined,
           category: categoryFilter !== "all" ? categoryFilter : undefined,
+        }).catch((e) => {
+          console.error("Failed to load products:", e);
+          return { items: [], totalPages: 1 };
         }),
-        adminService.getCategories(),
-        adminService.getSizes(),
-        adminService.getColors(),
+        adminService.getCategories().catch((e) => {
+          console.error("Failed to load categories:", e);
+          return [];
+        }),
+        adminService.getSizes().catch((e) => {
+          console.error("Failed to load sizes:", e);
+          return [];
+        }),
+        adminService.getColors().catch((e) => {
+          console.error("Failed to load colors:", e);
+          return [];
+        }),
       ]);
 
-      setProducts(prodRes.items || []);
-      setTotalPages(prodRes.totalPages || 1);
-      setCategories(cats);
-      setSizes(szs);
-      setColors(cols);
-      if (cats.length > 0 && !formData.categoryId) {
+      setProducts(prodRes?.items || []);
+      setTotalPages(prodRes?.totalPages || 1);
+      setCategories(cats || []);
+      setSizes(szs || []);
+      setColors(cols || []);
+      if (cats && cats.length > 0 && !formData.categoryId) {
         setFormData((prev) => ({ ...prev, categoryId: cats[0].id }));
       }
     } catch (err) {
@@ -150,9 +168,32 @@ export const AdminProductsPage: React.FC = () => {
     setFormImages([]);
     setUrlInput("");
     setShowAddCustomColor(false);
-    // Pre-select first 2 colors and standard sizes
+    setShowAddCustomSize(false);
+
+    // Pre-select first 2 colors
     setSelectedColorIds(colors.slice(0, 2).map((c) => c.id));
-    setSelectedSizeIds(sizes.map((s) => s.id));
+
+    // Pre-select standard sizes (S - XXL) or all available sizes
+    if (sizes.length > 0) {
+      const standardCodes = ["S", "M", "L", "XL", "XXL"];
+      const standardSizeIds = sizes
+        .filter((s) => standardCodes.includes(s.code.toUpperCase()))
+        .map((s) => s.id);
+      setSelectedSizeIds(standardSizeIds.length > 0 ? standardSizeIds : sizes.map((s) => s.id));
+    } else {
+      // Auto-fetch if not yet populated
+      adminService.getSizes().then((res) => {
+        if (res && res.length > 0) {
+          setSizes(res);
+          const standardCodes = ["S", "M", "L", "XL", "XXL"];
+          const standardIds = res
+            .filter((s) => standardCodes.includes(s.code.toUpperCase()))
+            .map((s) => s.id);
+          setSelectedSizeIds(standardIds.length > 0 ? standardIds : res.map((s) => s.id));
+        }
+      }).catch(console.error);
+    }
+
     setFormError("");
     setIsCreateModalOpen(true);
   };
@@ -349,6 +390,65 @@ export const AdminProductsPage: React.FC = () => {
     } catch (err: any) {
       alert(err?.response?.data?.error || err?.message || "Failed to delete color.");
     }
+  };
+
+  const handleCreateCustomSize = async () => {
+    if (!customSizeName.trim()) {
+      alert("Please enter a size name (e.g. 3XL, Oversized).");
+      return;
+    }
+    const code = (customSizeCode.trim() || customSizeName.trim()).toUpperCase();
+    try {
+      setIsAddingSize(true);
+      const created = await adminService.createSize({
+        name: customSizeName.trim(),
+        code,
+      });
+      setSizes((prev) => (prev.some((s) => s.id === created.id) ? prev : [...prev, created]));
+      setSelectedSizeIds((prev) => (prev.includes(created.id) ? prev : [...prev, created.id]));
+      setCustomSizeName("");
+      setCustomSizeCode("");
+      setShowAddCustomSize(false);
+    } catch (err: any) {
+      alert(err?.response?.data?.error || err?.message || "Failed to create custom size.");
+    } finally {
+      setIsAddingSize(false);
+    }
+  };
+
+  const handleSeedDefaultSizes = async () => {
+    try {
+      setIsAddingSize(true);
+      const seeded = await adminService.seedSizes();
+      if (seeded && seeded.length > 0) {
+        setSizes(seeded);
+        const standardCodes = ["S", "M", "L", "XL", "XXL"];
+        const standardIds = seeded
+          .filter((s) => standardCodes.includes(s.code.toUpperCase()))
+          .map((s) => s.id);
+        setSelectedSizeIds(standardIds.length > 0 ? standardIds : seeded.map((s) => s.id));
+      }
+    } catch (err: any) {
+      alert(err?.response?.data?.error || err?.message || "Failed to initialize default sizes.");
+    } finally {
+      setIsAddingSize(false);
+    }
+  };
+
+  const handleSelectAllSizes = () => {
+    setSelectedSizeIds(sizes.map((s) => s.id));
+  };
+
+  const handleSelectStandardSizes = () => {
+    const standardCodes = ["S", "M", "L", "XL", "XXL"];
+    const matched = sizes
+      .filter((s) => standardCodes.includes(s.code.toUpperCase()))
+      .map((s) => s.id);
+    setSelectedSizeIds(matched.length > 0 ? matched : sizes.map((s) => s.id));
+  };
+
+  const handleClearSizes = () => {
+    setSelectedSizeIds([]);
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
@@ -1057,39 +1157,151 @@ export const AdminProductsPage: React.FC = () => {
                 </div>
 
                 {/* 3. PRODUCT SIZES SECTION */}
-                <div className="sm:col-span-2 space-y-2 p-3 bg-neutral-900/50 border border-neutral-800 rounded-xs">
-                  <div>
-                    <label className="font-semibold text-neutral-200 uppercase tracking-wider text-xs flex items-center gap-1.5">
-                      <Ruler className="h-3.5 w-3.5 text-[#d4af37]" />
-                      Available Sizes * ({selectedSizeIds.length} selected)
-                    </label>
-                    <p className="text-[11px] text-neutral-400 mt-0.5">
-                      Select which sizes are available for this style. Only selected sizes appear on the storefront.
-                    </p>
+                <div className="sm:col-span-2 space-y-3 p-3.5 bg-neutral-900/60 border border-neutral-800 rounded-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <label className="font-semibold text-neutral-200 uppercase tracking-wider text-xs flex items-center gap-1.5">
+                        <Ruler className="h-3.5 w-3.5 text-[#d4af37]" />
+                        Available Sizes *{" "}
+                        <span className="text-[#d4af37] font-mono">
+                          ({selectedSizeIds.length} SELECTED)
+                        </span>
+                      </label>
+                      <p className="text-[11px] text-neutral-400 mt-0.5">
+                        Select which sizes are available for this style. Only selected sizes appear on the storefront.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 self-start sm:self-auto shrink-0 flex-wrap">
+                      {sizes.length > 0 && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleSelectStandardSizes}
+                            className="px-2 py-0.5 text-[10px] font-medium text-neutral-300 hover:text-white bg-neutral-800 hover:bg-neutral-700 rounded-xs transition-colors cursor-pointer"
+                          >
+                            Standard (S–XXL)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSelectAllSizes}
+                            className="px-2 py-0.5 text-[10px] font-medium text-neutral-300 hover:text-white bg-neutral-800 hover:bg-neutral-700 rounded-xs transition-colors cursor-pointer"
+                          >
+                            Select All
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleClearSizes}
+                            className="px-2 py-0.5 text-[10px] font-medium text-neutral-400 hover:text-rose-400 bg-neutral-800/60 hover:bg-neutral-800 rounded-xs transition-colors cursor-pointer"
+                          >
+                            Clear
+                          </button>
+                        </>
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowAddCustomSize(!showAddCustomSize)}
+                        className="h-6 text-[11px] px-2 py-0 border-neutral-700 hover:border-[#d4af37] text-neutral-300 hover:text-[#d4af37]"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Custom Size
+                      </Button>
+                    </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {sizes.map((sz) => {
-                      const isSelected = selectedSizeIds.includes(sz.id);
-                      return (
+                  {/* Add Custom Size Collapsible Panel */}
+                  {showAddCustomSize && (
+                    <div className="p-3 bg-neutral-950 border border-neutral-800 rounded-xs space-y-2">
+                      <div className="flex items-center justify-between text-xs text-neutral-300 font-medium">
+                        <span>Add New Size to Taxonomy</span>
                         <button
-                          key={sz.id}
                           type="button"
-                          onClick={() => toggleSize(sz.id)}
-                          className={cn(
-                            "px-4 py-2 text-xs font-bold rounded-xs border transition-all flex items-center gap-1.5",
-                            isSelected
-                              ? "border-[#d4af37] bg-[#d4af37]/15 text-[#d4af37] ring-1 ring-[#d4af37]/70"
-                              : "border-neutral-800 bg-neutral-950 text-neutral-400 hover:border-neutral-700 hover:text-white"
-                          )}
+                          onClick={() => setShowAddCustomSize(false)}
+                          className="text-neutral-500 hover:text-white"
                         >
-                          {isSelected && <Check className="h-3 w-3 text-[#d4af37]" />}
-                          <span>{sz.name}</span>
-                          <span className="font-mono text-[10px] opacity-70">({sz.code})</span>
+                          <X className="h-3.5 w-3.5" />
                         </button>
-                      );
-                    })}
-                  </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+                        <Input
+                          placeholder="Size Name (e.g. 3XL, Oversized)"
+                          value={customSizeName}
+                          onChange={(e) => setCustomSizeName(e.target.value)}
+                          className="text-xs"
+                        />
+                        <Input
+                          placeholder="Code (e.g. 3XL, OS)"
+                          value={customSizeCode}
+                          onChange={(e) => setCustomSizeCode(e.target.value)}
+                          className="text-xs font-mono uppercase"
+                        />
+                        <Button
+                          type="button"
+                          variant="gold"
+                          size="sm"
+                          onClick={handleCreateCustomSize}
+                          isLoading={isAddingSize}
+                          className="h-8 text-xs shrink-0"
+                        >
+                          Save Size
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Size Swatch Selector Chips */}
+                  {sizes.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {sizes.map((sz) => {
+                        const isSelected = selectedSizeIds.includes(sz.id);
+                        return (
+                          <button
+                            key={sz.id}
+                            type="button"
+                            onClick={() => toggleSize(sz.id)}
+                            className={cn(
+                              "px-3.5 py-2 text-xs font-bold rounded-xs border transition-all flex items-center gap-2 cursor-pointer select-none",
+                              isSelected
+                                ? "border-[#d4af37] bg-[#d4af37]/20 text-white ring-1 ring-[#d4af37] shadow-xs"
+                                : "border-neutral-800 bg-neutral-950 text-neutral-400 hover:border-neutral-700 hover:text-white hover:bg-neutral-900"
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "flex h-3.5 w-3.5 items-center justify-center rounded-xs border text-[10px]",
+                                isSelected
+                                  ? "border-[#d4af37] bg-[#d4af37] text-black"
+                                  : "border-neutral-700 bg-neutral-900 text-transparent"
+                              )}
+                            >
+                              <Check className="h-2.5 w-2.5 stroke-[3]" />
+                            </span>
+                            <span className="font-mono text-xs font-extrabold tracking-wide">{sz.code}</span>
+                            <span className="text-[11px] font-normal text-neutral-400">({sz.name})</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-4 border border-dashed border-neutral-800 bg-neutral-950/60 rounded-xs text-center space-y-2.5">
+                      <p className="text-xs text-neutral-400">
+                        No sizes found in the database taxonomy yet.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="gold"
+                        size="sm"
+                        onClick={handleSeedDefaultSizes}
+                        isLoading={isAddingSize}
+                        className="text-xs h-8"
+                      >
+                        <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                        Initialize Standard Sizes (XS, S, M, L, XL, XXL, 3XL, FREE)
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="sm:col-span-2">

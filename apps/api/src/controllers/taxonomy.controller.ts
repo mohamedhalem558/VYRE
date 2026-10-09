@@ -46,6 +46,40 @@ export class TaxonomyController {
     }
   }
 
+  async createSize(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { name, code, displayOrder } = req.body;
+      if (!name || !code) {
+        res.status(400).json({
+          success: false,
+          error: "Size name and code (e.g. 'M', 'XL') are required.",
+        });
+        return;
+      }
+      const size = await taxonomyService.createSize(name, code, displayOrder);
+      res.status(201).json({
+        success: true,
+        data: size,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async seedSizes(_req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await taxonomyService.seedDefaultSizes();
+      const sizes = await taxonomyService.getSizes();
+      res.status(200).json({
+        success: true,
+        message: "Default sizes initialized successfully",
+        data: sizes,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async deleteColor(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
