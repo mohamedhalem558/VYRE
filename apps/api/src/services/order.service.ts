@@ -158,25 +158,41 @@ export class OrderService {
 
   /**
    * CRITICAL ORDER CREATION WORKFLOW (Atomic Database Transaction)
+   * Supports both authenticated users (associates userId) and guests (userId is null)
    */
-  async createOrder(userId: string, input: CreateOrderInput): Promise<OrderDTO> {
+  async createOrder(userId: string | null, input: CreateOrderInput): Promise<OrderDTO> {
     const shippingRates = await this.getShippingRates();
 
     const createdOrder = await prisma.$transaction(async (tx) => {
-      // 1. Load user's cart
-      const cart = await tx.cart.findUnique({
-        where: { userId },
-        include: {
-          items: {
-            include: {
-              product: { include: { images: true } },
-              variant: { include: { color: true, size: true } },
-            },
-          },
-        },
-      });
+      // 1. Resolve items: from input.items or from user's persistent DB cart
+      let resolvedItems: Array<{
+        productId: string;
+        variantId?: string | null;
+        quantity: number;
+      }> = [];
 
-      if (!cart || !cart.items || cart.items.length === 0) {
+      let userCart: any = null;
+
+      if (input.items && input.items.length > 0) {
+        resolvedItems = input.items;
+      } else if (userId) {
+        userCart = await tx.cart.findUnique({
+          where: { userId },
+          include: {
+            items: true,
+          },
+        });
+
+        if (userCart && userCart.items && userCart.items.length > 0) {
+          resolvedItems = userCart.items.map((ci: any) => ({
+            productId: ci.productId,
+            variantId: ci.variantId,
+            quantity: ci.quantity,
+          }));
+        }
+      }
+
+      if (resolvedItems.length === 0) {
         throw new Error("Your shopping bag is empty. Please add items before checking out.");
       }
 
@@ -184,24 +200,38 @@ export class OrderService {
       let calculatedSubtotal = 0;
       const orderItemsData: any[] = [];
 
-      for (const item of cart.items) {
-        const product = item.product;
-        const variant = item.variant;
+      for (const item of resolvedItems) {
+        const product = await tx.product.findUnique({
+          where: { id: item.productId },
+          include: {
+            images: { orderBy: { displayOrder: "asc" } },
+            variants: {
+              include: { color: true, size: true },
+            },
+          },
+        });
 
         if (!product || !product.active) {
           throw new Error(`Product "${product?.name || item.productId}" is currently unavailable.`);
         }
 
+        let variant: any = null;
+        if (item.variantId) {
+          variant = product.variants.find((v) => v.id === item.variantId);
+        } else if (product.variants.length > 0) {
+          variant = product.variants.find((v) => v.active && v.stock >= item.quantity) || product.variants[0];
+        }
+
         if (!variant || !variant.active) {
           throw new Error(
-            `Product variant for "${product.name}" (${item.variantId}) is currently inactive.`
+            `Product variant for "${product.name}" is currently inactive or unavailable.`
           );
         }
 
         // Check stock availability
         if (variant.stock < item.quantity) {
           throw new Error(
-            `Insufficient stock for "${product.name}" (${variant.size?.code} / ${variant.color?.name}). Requested: ${item.quantity}, Available: ${variant.stock}.`
+            `Insufficient stock for "${product.name}" (${variant.size?.code || ""} / ${variant.color?.name || ""}). Requested: ${item.quantity}, Available: ${variant.stock}.`
           );
         }
 
@@ -280,7 +310,7 @@ export class OrderService {
       const order = await tx.order.create({
         data: {
           orderNumber,
-          userId,
+          userId: userId || null,
           customerName: input.customerName,
           customerEmail: input.customerEmail,
           customerPhone: input.customerPhone,
@@ -335,7 +365,7 @@ export class OrderService {
             changedQuantity: -itemData.quantity,
             newQuantity: newStock,
             reason: "SALE",
-            userId,
+            userId: userId || null,
             metadata: {
               orderNumber,
               orderId: order.id,
@@ -363,25 +393,32 @@ export class OrderService {
           data: { usedCount: { increment: 1 } },
         });
 
-        await tx.couponUsage.create({
-          data: {
-            couponId: validCoupon.id,
-            userId,
-            orderId: order.id,
-            discountAmount: new Prisma.Decimal(discountAmount),
-          },
-        });
+        if (userId) {
+          await tx.couponUsage.create({
+            data: {
+              couponId: validCoupon.id,
+              userId,
+              orderId: order.id,
+              discountAmount: new Prisma.Decimal(discountAmount),
+            },
+          });
+        }
       }
 
-      // 16. Clear the cart
-      await tx.cartItem.deleteMany({
-        where: { cartId: cart.id },
-      });
+      // 16. Clear the cart if user is authenticated and had a DB cart
+      if (userId) {
+        const cartToClear = userCart || (await tx.cart.findUnique({ where: { userId } }));
+        if (cartToClear) {
+          await tx.cartItem.deleteMany({
+            where: { cartId: cartToClear.id },
+          });
+        }
+      }
 
       // Create Audit Log
       await tx.auditLog.create({
         data: {
-          userId,
+          userId: userId || null,
           action: "ORDER_CREATED",
           entity: "Order",
           entityId: order.id,
@@ -389,6 +426,7 @@ export class OrderService {
             orderNumber,
             total: finalTotal,
             itemCount: orderItemsData.length,
+            isGuest: !userId,
           },
         },
       });
@@ -446,7 +484,7 @@ export class OrderService {
   /**
    * Get order by ID with ownership enforcement
    */
-  async getOrderById(orderId: string, userId?: string, isAdmin = false): Promise<OrderDTO> {
+  async getOrderById(orderId: string, userId?: string | null, isAdmin = false): Promise<OrderDTO> {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -459,8 +497,8 @@ export class OrderService {
       throw new Error("Order not found");
     }
 
-    // Customer can only view their own orders
-    if (!isAdmin && order.userId !== userId) {
+    // Customer can only view their own orders if order was placed by an account
+    if (order.userId && !isAdmin && order.userId !== userId) {
       throw new Error("Access denied. You are not authorized to view this order.");
     }
 

@@ -9,7 +9,7 @@ import { Breadcrumb } from "../components/common/Breadcrumb.js";
 import { Button } from "../components/ui/button.js";
 import { Input } from "../components/ui/input.js";
 import { Select } from "../components/ui/select.js";
-import { PaymentMethod, ShippingRateDTO, CreateOrderDTO } from "@vyre/shared";
+import { PaymentMethod, ShippingRateDTO, CreateOrderDTO, OrderDTO } from "@vyre/shared";
 import {
   Banknote,
   Lock,
@@ -46,6 +46,7 @@ export const CheckoutPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH_ON_DELIVERY");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [guestPlacedOrder, setGuestPlacedOrder] = useState<OrderDTO | null>(null);
   const [shippingRates, setShippingRates] = useState<ShippingRateDTO[]>([]);
 
   useEffect(() => {
@@ -80,6 +81,69 @@ export const CheckoutPage: React.FC = () => {
   }, [subtotal, currentShippingRate]);
 
   const calculatedTotal = Math.max(0, subtotal - discount + effectiveShippingFee);
+
+  if (guestPlacedOrder) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center space-y-6">
+        <div className="h-16 w-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+          <ShieldCheck className="h-8 w-8" />
+        </div>
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-widest text-emerald-600">
+            Order Placed Successfully
+          </p>
+          <h1 className="text-3xl font-bold uppercase tracking-tight text-neutral-900 font-heading">
+            Thank you, {guestPlacedOrder.customerName}!
+          </h1>
+          <p className="text-sm text-neutral-600">
+            Your order <strong className="text-neutral-900">#{guestPlacedOrder.orderNumber}</strong> has been received and is being prepared.
+          </p>
+        </div>
+
+        <div className="p-6 rounded-xs border border-neutral-200 bg-neutral-50 text-left space-y-4 text-xs">
+          <div className="flex justify-between border-b border-neutral-200 pb-3">
+            <span className="font-bold text-neutral-500 uppercase">Payment Method</span>
+            <span className="font-semibold text-neutral-900 uppercase">Cash on Delivery</span>
+          </div>
+          <div className="flex justify-between border-b border-neutral-200 pb-3">
+            <span className="font-bold text-neutral-500 uppercase">Total Amount</span>
+            <span className="font-bold text-neutral-900 text-sm">
+              {formatCurrency(guestPlacedOrder.total)}
+            </span>
+          </div>
+          <div className="flex justify-between border-b border-neutral-200 pb-3">
+            <span className="font-bold text-neutral-500 uppercase">Shipping Destination</span>
+            <span className="font-medium text-neutral-900 text-right">
+              {guestPlacedOrder.shippingAddress?.streetAddress}, {guestPlacedOrder.shippingAddress?.city}, {guestPlacedOrder.shippingAddress?.governorate}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-bold text-neutral-500 uppercase">Estimated Delivery</span>
+            <span className="font-medium text-neutral-900">
+              {guestPlacedOrder.estimatedDelivery || "1-3 Business Days"}
+            </span>
+          </div>
+        </div>
+
+        <p className="text-xs text-neutral-500">
+          A confirmation email has been dispatched to <strong>{guestPlacedOrder.customerEmail}</strong>. Our team will contact you at <strong>{guestPlacedOrder.customerPhone}</strong> prior to shipping.
+        </p>
+
+        <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-center">
+          <Link to="/shop">
+            <Button variant="primary" size="md">
+              Continue Shopping
+            </Button>
+          </Link>
+          <Link to="/">
+            <Button variant="outline" size="md">
+              Return to Home
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -152,13 +216,22 @@ export const CheckoutPage: React.FC = () => {
         paymentMethod,
         couponCode: appliedCoupon?.code,
         notes: orderNotes,
+        items: items.map((it) => ({
+          productId: it.productId,
+          variantId: it.variantId || null,
+          quantity: it.quantity,
+        })),
       };
 
       const order = await orderService.createOrder(payload);
 
       if (order && order.id) {
         await refreshCart();
-        navigate(`/account/orders/${order.id}`);
+        if (user) {
+          navigate(`/account/orders/${order.id}`);
+        } else {
+          setGuestPlacedOrder(order);
+        }
       } else {
         setErrorMsg("Failed to place your order. Please try again.");
       }

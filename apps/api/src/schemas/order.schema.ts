@@ -11,6 +11,12 @@ export const shippingAddressSchema = z.object({
   postalCode: z.string().max(20).optional().or(z.literal("")),
 });
 
+export const orderItemInputSchema = z.object({
+  productId: z.string().min(1, "Product ID is required"),
+  variantId: z.string().optional().nullable(),
+  quantity: z.number().int().min(1, "Quantity must be at least 1"),
+});
+
 export const createOrderSchema = z.object({
   customerName: z.string().min(2, "Customer name is required").max(100),
   customerEmail: z.string().email("Valid customer email is required"),
@@ -22,6 +28,7 @@ export const createOrderSchema = z.object({
     .default("CASH_ON_DELIVERY"),
   couponCode: z.string().max(50).optional().or(z.literal("")),
   notes: z.string().max(500).optional().or(z.literal("")),
+  items: z.array(orderItemInputSchema).optional(),
 });
 
 export const updateOrderStatusSchema = z.object({

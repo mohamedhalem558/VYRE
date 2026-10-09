@@ -98,6 +98,59 @@ export async function authenticate(
 }
 
 /**
+ * Optional Authentication Middleware:
+ * If Bearer token is present and valid, attaches user to req.user.
+ * If token is missing, malformed, or expired, safely proceeds as unauthenticated (guest).
+ */
+export async function optionalAuthenticate(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return next();
+    }
+
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return next();
+    }
+
+    const decoded = verifyAccessToken(token);
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        firstName: true,
+        lastName: true,
+        active: true,
+      },
+    });
+
+    if (user && user.active) {
+      req.user = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      };
+    }
+
+    next();
+  } catch (error) {
+    // If token verification fails (expired or invalid), do not block - proceed as guest
+    next();
+  }
+}
+
+/**
  * Role Authorization Middleware: Enforces permissions based on user roles
  */
 export function authorize(...allowedRoles: UserRole[]) {

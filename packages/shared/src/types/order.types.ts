@@ -56,6 +56,12 @@ export interface ShippingAddressInput {
   postalCode?: string;
 }
 
+export interface CreateOrderItemInput {
+  productId: string;
+  variantId?: string | null;
+  quantity: number;
+}
+
 export interface CreateOrderDTO {
   customerName: string;
   customerEmail: string;
@@ -65,6 +71,7 @@ export interface CreateOrderDTO {
   paymentMethod: PaymentMethod;
   couponCode?: string;
   notes?: string;
+  items?: CreateOrderItemInput[];
 }
 
 export interface UpdateOrderStatusDTO {

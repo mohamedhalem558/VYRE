@@ -22,7 +22,7 @@ export class OrderController {
 
   async createOrder(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = req.user!.id;
+      const userId = req.user ? req.user.id : null;
       const validatedInput = createOrderSchema.parse(req.body);
       const order = await orderService.createOrder(userId, validatedInput);
       res.status(201).json({
@@ -71,10 +71,10 @@ export class OrderController {
 
   async getOrderById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const user = req.user!;
+      const user = req.user;
       const { id } = req.params;
-      const isAdmin = user.role === UserRole.ADMIN;
-      const order = await orderService.getOrderById(id, user.id, isAdmin);
+      const isAdmin = user?.role === UserRole.ADMIN;
+      const order = await orderService.getOrderById(id, user?.id || null, isAdmin);
       res.status(200).json({
         success: true,
         data: order,

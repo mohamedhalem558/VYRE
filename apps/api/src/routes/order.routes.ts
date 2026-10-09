@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { orderController } from "../controllers/order.controller.js";
-import { authenticate, authorize } from "../middleware/auth.middleware.js";
+import { authenticate, optionalAuthenticate, authorize } from "../middleware/auth.middleware.js";
 import { UserRole } from "@prisma/client";
 
 const router = Router();
@@ -10,12 +10,20 @@ router.get("/shipping-rates", (req, res, next) =>
   orderController.getShippingRates(req, res, next)
 );
 
-// All subsequent order operations require authentication
+// Order creation supports both guests and authenticated users
+router.post("/", optionalAuthenticate, (req, res, next) =>
+  orderController.createOrder(req, res, next)
+);
+
+// Single order view supports both guests (by order ID) and authenticated account owners
+router.get("/:id", optionalAuthenticate, (req, res, next) =>
+  orderController.getOrderById(req, res, next)
+);
+
+// All subsequent customer order history & admin management operations require authentication
 router.use(authenticate);
 
-router.post("/", (req, res, next) => orderController.createOrder(req, res, next));
 router.get("/", (req, res, next) => orderController.getOrders(req, res, next));
-router.get("/:id", (req, res, next) => orderController.getOrderById(req, res, next));
 
 // Only ADMIN can change order statuses
 router.patch("/:id/status", authorize(UserRole.ADMIN), (req, res, next) =>
