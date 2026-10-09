@@ -504,18 +504,18 @@ export const MainLayout: React.FC = () => {
               </p>
               <div className="flex items-center gap-3 pt-2">
                 <a
-                  href="https://instagram.com"
+                  href="https://www.instagram.com/vyree.shop/?utm_source=ig_web_button_share_sheet"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   aria-label="Instagram"
                   className="h-8 w-8 rounded-full border border-neutral-700 flex items-center justify-center text-neutral-400 hover:text-white hover:border-white transition-colors"
                 >
                   <Instagram className="h-4 w-4" />
                 </a>
                 <a
-                  href="https://tiktok.com"
+                  href="https://www.tiktok.com/@vyrrre.eg?is_from_webapp=1&sender_device=pc"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   aria-label="TikTok"
                   className="h-8 w-8 rounded-full border border-neutral-700 flex items-center justify-center text-neutral-400 hover:text-white hover:border-white transition-colors"
                 >

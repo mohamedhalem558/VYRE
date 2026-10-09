@@ -8,18 +8,18 @@ export const AnnouncementBar: React.FC = () => {
         {/* Social media icons on the left */}
         <div className="flex items-center gap-3">
           <a
-            href="https://instagram.com"
+            href="https://www.instagram.com/vyree.shop/?utm_source=ig_web_button_share_sheet"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             aria-label="Instagram"
             className="text-neutral-600 hover:text-black transition-colors"
           >
             <Instagram className="h-3.5 w-3.5" />
           </a>
           <a
-            href="https://tiktok.com"
+            href="https://www.tiktok.com/@vyrrre.eg?is_from_webapp=1&sender_device=pc"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             aria-label="TikTok"
             className="text-neutral-600 hover:text-black transition-colors"
           >

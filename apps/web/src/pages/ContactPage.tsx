@@ -4,7 +4,7 @@ import { Button } from "../components/ui/button.js";
 import { Input } from "../components/ui/input.js";
 import { Textarea } from "../components/ui/textarea.js";
 import { Select } from "../components/ui/select.js";
-import { MapPin, Mail, Clock, CheckCircle2, HelpCircle } from "lucide-react";
+import { MapPin, Mail, Clock, CheckCircle2, HelpCircle, Instagram } from "lucide-react";
 
 export const ContactPage: React.FC = () => {
   const [name, setName] = useState("");
@@ -181,6 +181,38 @@ export const ContactPage: React.FC = () => {
                 <div>
                   <strong className="text-neutral-900 block">Operating Hours:</strong>
                   <span>Saturday – Thursday: 10:00 AM – 10:00 PM CLT</span>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-neutral-100">
+                <strong className="text-neutral-900 block mb-2">Official Channels:</strong>
+                <div className="flex items-center gap-2">
+                  <a
+                    href="https://www.instagram.com/vyree.shop/?utm_source=ig_web_button_share_sheet"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Instagram"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xs border border-neutral-200 text-neutral-700 hover:text-black hover:border-black transition-colors"
+                  >
+                    <Instagram className="h-3.5 w-3.5" />
+                    <span>Instagram</span>
+                  </a>
+                  <a
+                    href="https://www.tiktok.com/@vyrrre.eg?is_from_webapp=1&sender_device=pc"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="TikTok"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xs border border-neutral-200 text-neutral-700 hover:text-black hover:border-black transition-colors"
+                  >
+                    <svg
+                      className="h-3.5 w-3.5 fill-current"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.82 4.49 6.3 6.3 0 0 0 1.86-4.48V8.71a8.16 8.16 0 0 0 4.91 1.63v-3.65h-.01z" />
+                    </svg>
+                    <span>TikTok</span>
+                  </a>
                 </div>
               </div>
             </div>
