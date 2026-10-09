@@ -1,61 +1,67 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { env } from "../config/env.js";
 
-// ─── Transporter ──────────────────────────────────────────────────────────────
+// ─── SMTP Configuration & Transporter ───────────────────────────────────────
 let transporter: Transporter | null = null;
 
-export async function getTransporter(): Promise<Transporter> {
+export interface SmtpConfig {
+  host: string;
+  port: number;
+  user: string;
+  pass: string;
+  isConfigured: boolean;
+}
+
+export function getSmtpConfig(): SmtpConfig {
+  const host = (process.env.SMTP_HOST || env.SMTP_HOST || "").trim();
+  const port = Number(process.env.SMTP_PORT || env.SMTP_PORT) || 587;
+  const user = (process.env.SMTP_USER || env.SMTP_USER || "").trim();
+  const pass = (process.env.SMTP_PASS || process.env.SMTP_PASSWORD || env.SMTP_PASSWORD || "").trim();
+  const isConfigured = Boolean(host && user && pass);
+
+  return { host, port, user, pass, isConfigured };
+}
+
+export function isSmtpConfigured(): boolean {
+  return getSmtpConfig().isConfigured;
+}
+
+export async function getTransporter(): Promise<Transporter | null> {
   if (transporter) return transporter;
 
-  if (env.SMTP_HOST && env.SMTP_USER) {
-    const isGmail = env.SMTP_HOST.toLowerCase().includes("gmail");
-    const port = Number(env.SMTP_PORT) || 587;
-    const isSecure = port === 465;
+  const config = getSmtpConfig();
+  if (!config.isConfigured) {
+    return null;
+  }
 
+  const isGmail = config.host.toLowerCase().includes("gmail");
+  const isSecure = config.port === 465;
+
+  try {
     transporter = nodemailer.createTransport({
-      host: env.SMTP_HOST,
-      port,
+      host: config.host,
+      port: config.port,
       secure: isSecure,
       service: isGmail ? "gmail" : undefined,
       auth: {
-        user: env.SMTP_USER,
-        pass: env.SMTP_PASSWORD,
+        user: config.user,
+        pass: config.pass,
       },
       tls: {
         rejectUnauthorized: false,
       },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 20000,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
 
-    console.log(`[Email] Configured SMTP transporter (${env.SMTP_HOST}:${port}) for ${env.SMTP_USER}`);
-  } else {
-    // Development fallback — Ethereal fake SMTP
-    try {
-      const testAccount = await nodemailer.createTestAccount();
-      transporter = nodemailer.createTransport({
-        host: "smtp.ethereal.email",
-        port: 587,
-        secure: false,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass,
-        },
-      });
-      console.log(
-        "\n📬 [Email] No SMTP_HOST/SMTP_USER configured. Using Ethereal test inbox:",
-        testAccount.user
-      );
-    } catch (etherealErr) {
-      console.warn("[Email] Could not create Ethereal account, using json transport fallback:", etherealErr);
-      transporter = nodemailer.createTransport({
-        jsonTransport: true,
-      });
-    }
+    console.log(`[Email] Configured SMTP transporter (${config.host}:${config.port}) for ${config.user}`);
+    return transporter;
+  } catch (error) {
+    console.error("[Email] Failed to create SMTP transporter:", error);
+    transporter = null;
+    return null;
   }
-
-  return transporter;
 }
 
 export function getSenderAddress(): string {
@@ -146,12 +152,28 @@ export async function sendPasswordResetEmail(
   to: string,
   otpCode: string,
   directToken?: string
-): Promise<void> {
-  const clientUrl = env.CLIENT_URL || "https://www.vyree.shop";
-  const resetBaseUrl = env.RESET_PASSWORD_URL || `${clientUrl}/reset-password`;
+): Promise<{ success: boolean; delivered: boolean; error?: string }> {
+  const clientUrl = process.env.CLIENT_URL || env.CLIENT_URL || "https://www.vyree.shop";
+  const resetBaseUrl = process.env.RESET_PASSWORD_URL || env.RESET_PASSWORD_URL || `${clientUrl}/reset-password`;
   const tokenForUrl = directToken || otpCode;
   const resetUrl = `${resetBaseUrl}?token=${encodeURIComponent(tokenForUrl)}&email=${encodeURIComponent(to)}`;
   const expiryMinutes = 15;
+
+  const config = getSmtpConfig();
+
+  // 1. Fallback to console.log if SMTP is not configured (e.g. in development or before Railway vars are set)
+  if (!config.isConfigured) {
+    console.log(`\n=============================================================`);
+    console.log(`🔑 [AUTH] PASSWORD RESET OTP (SMTP NOT CONFIGURED)`);
+    console.log(`📧 Target Recipient:  ${to}`);
+    console.log(`🔢 6-Digit OTP Code:  ${otpCode}`);
+    console.log(`⏱️  Expires In:        ${expiryMinutes} minutes`);
+    console.log(`🔗 Direct Reset Link:  ${resetUrl}`);
+    console.log(`💡 [Railway Testing]   Copy the OTP above to reset your password.`);
+    console.log(`💡 [Production SMTP]   Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS in Railway to send emails.`);
+    console.log(`=============================================================\n`);
+    return { success: true, delivered: false };
+  }
 
   const contentHtml = `
     <h1 style="margin:0 0 12px;font-size:22px;font-weight:800;color:#111111;text-transform:uppercase;letter-spacing:0.04em;">
@@ -216,6 +238,10 @@ If you did not request this, please safely ignore this email.
 
   try {
     const transport = await getTransporter();
+    if (!transport) {
+      throw new Error("Transporter initialization failed with provided SMTP credentials.");
+    }
+
     const info = await transport.sendMail({
       from: getSenderAddress(),
       to,
@@ -224,13 +250,23 @@ If you did not request this, please safely ignore this email.
       html,
     });
 
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log(`\n📬 [Email] Preview URL: ${previewUrl}`);
-    }
-    console.log(`[Email] Password reset OTP sent to ${to} (Message ID: ${info.messageId})`);
-  } catch (error) {
-    console.error(`[Email] Failed to send password reset email to ${to}:`, error);
+    console.log(`[Email] Password reset OTP email successfully sent to ${to} (Message ID: ${info.messageId})`);
+    console.log(`[Email] Active OTP code for ${to}: [ ${otpCode} ] (Expires in ${expiryMinutes}m)`);
+    return { success: true, delivered: true };
+  } catch (error: any) {
+    // 2. Fallback to console.log if email sending fails
+    console.error(`❌ [Email] Failed to send password reset email to ${to}:`, error?.message || error);
+    console.log(`\n=============================================================`);
+    console.log(`⚠️  [AUTH] PASSWORD RESET OTP (EMAIL SENDING FAILED - FALLBACK)`);
+    console.log(`📧 Target Recipient:  ${to}`);
+    console.log(`🔢 6-Digit OTP Code:  ${otpCode}`);
+    console.log(`⏱️  Expires In:        ${expiryMinutes} minutes`);
+    console.log(`🔗 Direct Reset Link:  ${resetUrl}`);
+    console.log(`❗ Error Reason:       ${error?.message || "SMTP error"}`);
+    console.log(`💡 [Railway Testing]   Copy the OTP above to reset your password.`);
+    console.log(`=============================================================\n`);
+
+    return { success: false, delivered: false, error: error?.message || "Email sending error" };
   }
 }
 
@@ -393,6 +429,10 @@ export async function sendOrderPlacedEmail(order: any): Promise<void> {
 
   try {
     const transport = await getTransporter();
+    if (!transport) {
+      console.warn(`[Email] SMTP not configured. Skipping Order Placed email for #${order.orderNumber}`);
+      return;
+    }
     await transport.sendMail({
       from: getSenderAddress(),
       to,
@@ -459,6 +499,10 @@ export async function sendOrderConfirmedEmail(order: any): Promise<void> {
 
   try {
     const transport = await getTransporter();
+    if (!transport) {
+      console.warn(`[Email] SMTP not configured. Skipping Order Confirmed email for #${order.orderNumber}`);
+      return;
+    }
     await transport.sendMail({
       from: getSenderAddress(),
       to,
@@ -539,6 +583,10 @@ export async function sendOrderShippedEmail(order: any, trackingNumber?: string)
 
   try {
     const transport = await getTransporter();
+    if (!transport) {
+      console.warn(`[Email] SMTP not configured. Skipping Order Shipped email for #${order.orderNumber}`);
+      return;
+    }
     await transport.sendMail({
       from: getSenderAddress(),
       to,
@@ -611,6 +659,10 @@ export async function sendOrderDeliveredEmail(order: any): Promise<void> {
 
   try {
     const transport = await getTransporter();
+    if (!transport) {
+      console.warn(`[Email] SMTP not configured. Skipping Order Delivered email for #${order.orderNumber}`);
+      return;
+    }
     await transport.sendMail({
       from: getSenderAddress(),
       to,

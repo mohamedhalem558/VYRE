@@ -93,6 +93,7 @@ export class AuthController {
       const result = await authService.forgotPassword(email);
       res.status(200).json({
         success: true,
+        message: result.message || "A 6-digit verification code has been dispatched to your email address.",
         data: result,
       });
     } catch (error) {

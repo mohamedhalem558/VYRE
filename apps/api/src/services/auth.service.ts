@@ -248,20 +248,22 @@ export class AuthService {
       where: { email: normalizedEmail },
     });
 
-    // Always respond generically to prevent email enumeration
+    // If account not found, log warning to console for Railway testing visibility while returning safe generic message
     if (!user || !user.active) {
+      console.warn(`[Auth] Password reset requested for non-existent or inactive email: ${normalizedEmail}`);
       return { message: GENERIC_MESSAGE };
     }
 
-    // Generate a secure 6-digit numeric OTP code
-    const otp = crypto.randomInt(100000, 999999).toString();
+    // Generate a secure 6-digit numeric OTP code (100000 to 999999)
+    const otp = crypto.randomInt(100000, 1000000).toString();
 
-    // Hash the OTP before storing in database for security
+    // Hash the OTP with SHA-256 before storing in database for security
     const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
     // Code is valid for 15 minutes
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
+    // Save hashed token and expiration in Prisma User record
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -270,19 +272,20 @@ export class AuthService {
       },
     });
 
-    // Send the real reset email with the 6-digit OTP
+    // Dispatch real email via Nodemailer (or fallback to console.log in email.ts)
     try {
       await sendPasswordResetEmail(user.email, otp);
-    } catch (emailError) {
-      console.error("[AuthService] Failed to send password reset email:", emailError);
+    } catch (emailError: any) {
+      console.error("[AuthService] Failed to send password reset email:", emailError?.message || emailError);
+      console.log(`[AuthService] [FALLBACK LOG] OTP for ${user.email}: ${otp}`);
     }
 
     const response: { message: string; devOtp?: string; devResetToken?: string } = {
       message: "A 6-digit verification code has been sent to your email address.",
     };
 
-    // Expose OTP in development for fast testing
-    if (process.env.NODE_ENV === "development") {
+    // Expose OTP in development, test environments, or if EXPOSE_DEV_OTP is enabled
+    if (process.env.NODE_ENV !== "production" || process.env.EXPOSE_DEV_OTP === "true") {
       response.devOtp = otp;
       response.devResetToken = otp;
     }
