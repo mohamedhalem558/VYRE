@@ -6,7 +6,6 @@ import { useAuth } from "../context/AuthContext.js";
 import { HolidayFlair } from "../components/seasonal/HolidayFlair.js";
 import {
   Clock,
-  Sparkles,
   ArrowRight,
   ShieldCheck,
   CheckCircle2,
@@ -40,7 +39,7 @@ export const WinterDropPage: React.FC = () => {
 
   // Countdown timer calculation
   const calculateTimeRemaining = (): TimeRemaining => {
-    const target = new Date(settings.dropDate || "2026-11-20T18:00:00Z").getTime();
+    const target = new Date(settings.dropDate || "2027-01-15T18:00:00Z").getTime();
     const now = new Date().getTime();
     const difference = target - now;
 
@@ -81,49 +80,45 @@ export const WinterDropPage: React.FC = () => {
       setStatusMessage(res.message);
       setEmail("");
     } catch {
-      setStatusMessage("Thank you! You are confirmed for early access.");
+      setStatusMessage("Thank you! You are confirmed for VIP early access.");
       setSubscribed(true);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Preview lookbook capsules
-  const lookbookTeasers = [
-    {
-      id: "01",
-      title: "480GSM Archival Boxy Hoodie",
-      fabric: "100% Egyptian Combed French Terry",
-      edition: "Limited to 150 pieces",
-      image: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=1200&auto=format&fit=crop",
-      badge: "Heavyweight Box Cut",
-    },
-    {
-      id: "02",
-      title: "Technical Thermal Parka",
-      fabric: "Water-Repellent Ripstop & Down Fill",
-      edition: "Limited to 80 pieces",
-      image: "https://images.unsplash.com/photo-1544441893-675973e31985?q=80&w=1200&auto=format&fit=crop",
-      badge: "Insulated Shell",
-    },
-    {
-      id: "03",
-      title: "Structured Heavy Knit Sweater",
-      fabric: "Dual-Ply Egyptian Cotton & Wool",
-      edition: "Limited to 120 pieces",
-      image: "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?q=80&w=1200&auto=format&fit=crop",
-      badge: "Winter Knitwear",
-    },
-  ];
+  // Headline & descriptive copy
+  const headline =
+    !settings.dropTitle || settings.dropTitle.includes("2026")
+      ? "WINTER 2027 COLLECTION"
+      : settings.dropTitle;
+
+  const description =
+    !settings.dropDescription || settings.dropDescription.includes("2026")
+      ? "The winter chapter of VYRE is arriving. Engineered for contemporary street luxury. Limited Capsule Drop coming soon."
+      : settings.dropDescription;
 
   return (
-    <div className="min-h-screen bg-[#08080a] text-white flex flex-col justify-between selection:bg-[#d4af37] selection:text-black relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#070709] text-white flex flex-col justify-between selection:bg-[#d4af37] selection:text-black relative overflow-x-hidden antialiased">
+      {/* 0. Ambient Luxury Backing Lighting (Multi-layer glow) */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 overflow-hidden"
+        aria-hidden="true"
+      >
+        {/* Primary Warm Amber / Gold Radial Aura */}
+        <div className="absolute -top-36 left-1/2 -translate-x-1/2 w-[850px] h-[550px] bg-gradient-to-b from-[#d4af37]/15 via-amber-700/5 to-transparent blur-[130px] rounded-full" />
+        {/* Subtle Deep Cyan / Frost Glow */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-cyan-950/15 blur-[140px] rounded-full" />
+        {/* Subtle Vignette Gradient */}
+        <div className="absolute inset-0 bg-radial-vignette opacity-70" />
+      </div>
+
       {/* Festive Holiday Falling Snow (if holiday theme is active) */}
       <HolidayFlair />
 
       {/* 1. Admin Quick-Control Floating Bar (Always visible to Admins) */}
       {isAdmin && (
-        <div className="sticky top-0 z-50 bg-[#121217]/95 border-b border-[#d4af37]/40 px-4 py-2.5 backdrop-blur-md">
+        <div className="sticky top-0 z-50 bg-[#0d0d12]/95 border-b border-[#d4af37]/40 px-4 py-2.5 backdrop-blur-md shadow-lg">
           <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2">
               <span className="flex h-2 w-2 rounded-full bg-[#d4af37] animate-ping" />
@@ -131,7 +126,7 @@ export const WinterDropPage: React.FC = () => {
                 Admin Live Control:
               </span>
               <span className="text-neutral-300">
-                Winter Drop Mode is <strong className="text-white">ACTIVE</strong> for public storefront.
+                Winter Drop Mode is <strong className="text-white">ACTIVE</strong> on public storefront.
               </span>
             </div>
 
@@ -168,19 +163,19 @@ export const WinterDropPage: React.FC = () => {
       )}
 
       {/* 2. Top Header Navigation */}
-      <header className="relative z-40 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between">
+      <header className="relative z-40 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-7 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Logo size="md" inverted={true} showTagline={false} />
-          <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-full border border-neutral-800 bg-neutral-900/80 text-[10px] font-mono uppercase tracking-widest text-neutral-400">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full border border-neutral-800/80 bg-neutral-900/60 backdrop-blur-sm text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-400">
             <span>Cairo, EG</span>
-            <span>•</span>
-            <span className="text-[#d4af37] font-bold">Limited Capsule</span>
+            <span className="text-neutral-600">•</span>
+            <span className="text-[#d4af37] font-semibold">Limited Drop</span>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           {isHolidayTheme && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#d4af37]/40 bg-[#d4af37]/10 text-[11px] font-mono text-[#d4af37]">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#d4af37]/40 bg-[#d4af37]/10 text-[11px] font-mono text-[#d4af37] backdrop-blur-sm">
               <Snowflake className="h-3 w-3 animate-spin" style={{ animationDuration: "12s" }} />
               <span className="hidden sm:inline uppercase tracking-wider font-semibold">Holiday Edition</span>
             </div>
@@ -189,7 +184,7 @@ export const WinterDropPage: React.FC = () => {
           {/* Discreet Admin Login Access Button */}
           <Link
             to={isAuthenticated ? "/admin" : "/login"}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm border border-neutral-800 bg-neutral-900/60 hover:bg-neutral-800 hover:border-neutral-700 text-xs font-mono uppercase tracking-wider text-neutral-400 hover:text-white transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm border border-neutral-800/90 bg-neutral-900/50 hover:bg-neutral-800 hover:border-neutral-700 text-xs font-mono uppercase tracking-wider text-neutral-400 hover:text-white transition-all backdrop-blur-sm"
             title={isAuthenticated ? "Open Admin Panel" : "Staff & Admin Login"}
           >
             {isAuthenticated ? (
@@ -208,43 +203,35 @@ export const WinterDropPage: React.FC = () => {
       </header>
 
       {/* 3. Main Hero & Teaser Content */}
-      <main className="relative z-30 max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-16 flex-1 flex flex-col items-center justify-center text-center space-y-12">
-        {/* Subtle Ambient Radial Glow */}
-        <div
-          className="absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-gradient-to-b from-[#d4af37]/10 via-cyan-900/10 to-transparent blur-3xl pointer-events-none rounded-full"
-          aria-hidden="true"
-        />
-
-        {/* Chapter Eyebrow */}
-        <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#d4af37]/30 bg-neutral-950/80 text-[11px] font-mono uppercase tracking-widest text-[#d4af37]">
-            <Sparkles className="h-3 w-3 text-[#d4af37]" />
-            <span>Chapter 02 // Winter 2026 Collection</span>
+      <main className="relative z-30 max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-20 flex-1 flex flex-col items-center justify-center text-center space-y-12 sm:space-y-14">
+        {/* Main Title & Descriptive Typography */}
+        <div className="space-y-5 max-w-3xl mx-auto">
+          {/* Subtle Luxury Pre-header Tag */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-[#d4af37]/30 bg-neutral-950/70 backdrop-blur-md text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.22em] text-[#d4af37] shadow-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#d4af37] animate-pulse" />
+            <span>LIMITED CAPSULE // COMING SOON</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-black uppercase tracking-tight font-heading text-white max-w-4xl leading-[1.05]">
-            {settings.dropTitle || "Winter 2026 Collection"}
+          {/* Main Headline */}
+          <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase tracking-tight font-heading text-white leading-[1.05] drop-shadow-md">
+            {headline}
           </h1>
 
-          <p className="text-sm sm:text-base font-mono tracking-widest text-[#d4af37] uppercase">
-            {settings.dropSubtitle || "DROP SOON • LIMITED RUN • CAIRO, EG"}
-          </p>
-
-          <p className="text-xs sm:text-sm text-neutral-400 max-w-xl mx-auto leading-relaxed pt-2">
-            {settings.dropDescription ||
-              "The winter chapter of VYRE is arriving. Engineered in Cairo for everyday luxury. Subscribe below for private early access and private lookbook preview."}
+          {/* Refined Captivating Description */}
+          <p className="text-sm sm:text-base md:text-lg text-neutral-300 max-w-2xl mx-auto leading-relaxed font-sans font-normal tracking-wide">
+            {description}
           </p>
         </div>
 
-        {/* 4. Live Countdown Clock */}
+        {/* 4. Polished Luxury Countdown Clock */}
         {settings.countdownEnabled && (
-          <div className="w-full max-w-xl mx-auto">
-            <div className="flex items-center justify-center gap-2 text-[10px] font-mono uppercase tracking-widest text-neutral-500 mb-3">
+          <div className="w-full max-w-2xl mx-auto space-y-4">
+            <div className="flex items-center justify-center gap-2 text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.25em] text-neutral-400">
               <Clock className="h-3.5 w-3.5 text-[#d4af37]" />
               <span>Official Drop Countdown</span>
             </div>
 
-            <div className="grid grid-cols-4 gap-2 sm:gap-4">
+            <div className="grid grid-cols-4 gap-2.5 sm:gap-5">
               {[
                 { label: "DAYS", value: timeLeft.days },
                 { label: "HOURS", value: timeLeft.hours },
@@ -253,15 +240,16 @@ export const WinterDropPage: React.FC = () => {
               ].map((unit) => (
                 <div
                   key={unit.label}
-                  className="p-4 sm:p-5 rounded-sm border border-neutral-800/90 bg-neutral-950/80 backdrop-blur-md flex flex-col items-center justify-center shadow-lg relative overflow-hidden group hover:border-neutral-700 transition-colors"
+                  className="p-4 sm:p-6 rounded-sm border border-neutral-800/90 bg-gradient-to-b from-neutral-900/70 to-neutral-950/90 backdrop-blur-xl flex flex-col items-center justify-center shadow-2xl relative overflow-hidden group hover:border-[#d4af37]/50 transition-all duration-300"
                 >
-                  <div className="text-2xl sm:text-4xl font-black font-mono text-white tracking-tight">
+                  <div className="text-3xl sm:text-5xl md:text-6xl font-black font-mono text-white tracking-tight">
                     {String(unit.value).padStart(2, "0")}
                   </div>
-                  <div className="text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-[#d4af37] mt-1 font-semibold">
+                  <div className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.2em] text-[#d4af37] mt-1.5 font-bold">
                     {unit.label}
                   </div>
-                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-[#d4af37]/40 to-transparent" />
+                  {/* Refined Golden Bottom Accent Line */}
+                  <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[#d4af37]/80 to-transparent group-hover:via-[#d4af37] transition-all" />
                 </div>
               ))}
             </div>
@@ -270,97 +258,49 @@ export const WinterDropPage: React.FC = () => {
 
         {/* 5. VIP Early Access Notification Form */}
         {settings.notifyEmailEnabled && (
-          <div className="w-full max-w-md mx-auto pt-2">
+          <div className="w-full max-w-lg mx-auto pt-2">
             {subscribed ? (
-              <div className="p-5 rounded-sm border border-emerald-500/40 bg-emerald-950/20 text-center space-y-2 backdrop-blur-md">
-                <CheckCircle2 className="h-7 w-7 text-emerald-400 mx-auto" />
-                <p className="text-sm font-bold uppercase tracking-wider text-emerald-300">
+              <div className="p-6 rounded-sm border border-[#d4af37]/40 bg-[#d4af37]/5 text-center space-y-2 backdrop-blur-md shadow-xl animate-in fade-in zoom-in-95">
+                <CheckCircle2 className="h-8 w-8 text-[#d4af37] mx-auto" />
+                <p className="text-sm font-bold uppercase tracking-wider text-white">
                   You Are On The Private VIP List
                 </p>
-                <p className="text-xs text-neutral-300">
+                <p className="text-xs text-neutral-300 leading-relaxed max-w-sm mx-auto">
                   {statusMessage ||
-                    "We will email your private early-access access code 1 hour before the public drop."}
+                    "We will email your private early-access access code before the public drop."}
                 </p>
               </div>
             ) : (
-              <form onSubmit={handleSubscribe} className="space-y-3">
-                <div className="flex flex-col sm:flex-row items-center gap-2">
+              <form onSubmit={handleSubscribe} className="space-y-3.5">
+                <div className="flex flex-col sm:flex-row items-stretch gap-2.5 p-1.5 bg-neutral-950/70 rounded-sm border border-neutral-800 focus-within:border-[#d4af37]/80 focus-within:ring-1 focus-within:ring-[#d4af37]/40 backdrop-blur-xl transition-all shadow-xl">
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter email for VIP early access..."
-                    className="w-full px-4 py-3 bg-neutral-900/90 border border-neutral-800 rounded-sm text-xs sm:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#d4af37] transition-colors"
+                    placeholder="Enter your email for private drop access..."
+                    className="w-full px-4 py-3 bg-transparent text-xs sm:text-sm text-white placeholder-neutral-500 focus:outline-none"
                   />
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full sm:w-auto shrink-0 px-6 py-3 bg-white hover:bg-neutral-200 text-black font-bold uppercase tracking-wider text-xs rounded-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 font-heading"
+                    className="shrink-0 px-6 py-3 bg-[#d4af37] hover:bg-[#c49f27] text-black font-extrabold uppercase tracking-[0.15em] text-xs rounded-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 font-heading shadow-md active:scale-95 cursor-pointer"
                   >
                     <span>{submitting ? "Joining..." : "Get Notified"}</span>
                     <ArrowRight className="h-3.5 w-3.5" />
                   </button>
                 </div>
-                <p className="text-[11px] text-neutral-500 font-mono text-center">
-                  Zero spam. Exclusive early-access password emailed directly to VIP members.
+                <p className="text-[11px] text-neutral-400 font-mono text-center tracking-wide">
+                  Zero spam. Private early-access access code delivered directly to VIP members.
                 </p>
               </form>
             )}
           </div>
         )}
-
-        {/* 6. Capsule Teaser Cards */}
-        <div className="w-full pt-8 space-y-4">
-          <div className="flex items-center justify-between border-b border-neutral-900 pb-3 max-w-4xl mx-auto">
-            <span className="text-[11px] font-mono uppercase tracking-widest text-neutral-400">
-              Capsule Preview // 3 Featured Cuts
-            </span>
-            <span className="text-[11px] font-mono text-[#d4af37] uppercase">
-              100% Cairo Crafted
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto text-left">
-            {lookbookTeasers.map((item) => (
-              <div
-                key={item.id}
-                className="group rounded-sm border border-neutral-800/80 bg-neutral-950/70 overflow-hidden flex flex-col hover:border-neutral-700 transition-all duration-300"
-              >
-                <div className="aspect-[4/5] relative overflow-hidden bg-neutral-900">
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 brightness-90 group-hover:brightness-100"
-                  />
-                  <div className="absolute top-2.5 left-2.5 px-2 py-0.5 bg-black/80 backdrop-blur-sm border border-neutral-700 text-[10px] font-mono uppercase tracking-widest text-white rounded-xs">
-                    {item.badge}
-                  </div>
-                  <div className="absolute top-2.5 right-2.5 text-[10px] font-mono text-[#d4af37] bg-black/80 px-2 py-0.5 border border-neutral-800 rounded-xs">
-                    {item.id}
-                  </div>
-                </div>
-
-                <div className="p-4 space-y-1.5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-                      {item.title}
-                    </h3>
-                    <p className="text-[11px] text-neutral-400 font-mono">{item.fabric}</p>
-                  </div>
-                  <div className="pt-2 border-t border-neutral-900 flex items-center justify-between text-[10px] font-mono text-neutral-400">
-                    <span>{item.edition}</span>
-                    <span className="text-[#d4af37]">Coming Soon</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </main>
 
-      {/* 7. Editorial Luxury Footer */}
-      <footer className="relative z-30 border-t border-neutral-900 bg-neutral-950/90 py-8 px-4 sm:px-6 lg:px-8 mt-12">
+      {/* 6. Editorial Luxury Footer */}
+      <footer className="relative z-30 border-t border-neutral-900/90 bg-[#070709]/90 py-8 px-4 sm:px-6 lg:px-8 mt-12 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-400">
           <div className="flex items-center gap-3">
             <span className="font-mono text-white font-bold tracking-wider">VYRE.</span>

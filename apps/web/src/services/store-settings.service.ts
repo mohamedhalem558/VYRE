@@ -8,14 +8,14 @@ import {
 export const DEFAULT_STORE_SETTINGS: StoreSettingsDTO = {
   winterDropMode: false,
   holidayTheme: false,
-  dropTitle: "Winter 2026 Collection",
+  dropTitle: "Winter 2027 Collection",
   dropSubtitle: "LIMITED CAPSULE DROP • CAIRO, EG",
   dropDescription:
-    "The winter chapter of VYRE is arriving. Engineered for contemporary street luxury. Subscribe below for private early access and exclusive drop lookbook.",
+    "The winter chapter of VYRE is arriving. Engineered for contemporary street luxury. Limited Capsule Drop coming soon.",
   dropDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
   countdownEnabled: true,
   notifyEmailEnabled: true,
-  announcementText: "❄️ WINTER 2026 DROP IMMINENT • EXCLUSIVE LIMITED RUN",
+  announcementText: "❄️ WINTER 2027 DROP IMMINENT • EXCLUSIVE LIMITED RUN",
   snowIntensity: "medium",
 };
 
