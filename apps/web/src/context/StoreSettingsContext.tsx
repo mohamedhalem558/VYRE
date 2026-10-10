@@ -63,6 +63,7 @@ export const StoreSettingsProvider: React.FC<{ children: ReactNode }> = ({ child
       setSettings(saved);
       toast({
         title: "Store Settings Updated",
+        message: "Seasonal mode and theme changes are now active.",
         description: "Seasonal mode and theme changes are now active.",
         type: "success",
       });
@@ -71,6 +72,7 @@ export const StoreSettingsProvider: React.FC<{ children: ReactNode }> = ({ child
       console.error("Failed to update store settings:", err);
       toast({
         title: "Update Failed",
+        message: "Could not save settings to server. Please try again.",
         description: "Could not save settings to server. Please try again.",
         type: "error",
       });
@@ -84,6 +86,9 @@ export const StoreSettingsProvider: React.FC<{ children: ReactNode }> = ({ child
     if (ok) {
       toast({
         title: nextState ? "Winter Drop Mode Enabled" : "Winter Drop Mode Disabled",
+        message: nextState
+          ? "Storefront is now displaying the Winter Coming Soon page. Admin remains fully accessible."
+          : "Normal storefront restored. All products and collections are now visible to shoppers.",
         description: nextState
           ? "Storefront is now displaying the Winter Coming Soon page. Admin remains fully accessible."
           : "Normal storefront restored. All products and collections are now visible to shoppers.",
@@ -99,6 +104,9 @@ export const StoreSettingsProvider: React.FC<{ children: ReactNode }> = ({ child
     if (ok) {
       toast({
         title: nextState ? "Holiday Theme Activated" : "Holiday Theme Deactivated",
+        message: nextState
+          ? "Winter snowfall flair and seasonal holiday accents are now visible."
+          : "Returned to standard minimalist store styling.",
         description: nextState
           ? "Winter snowfall flair and seasonal holiday accents are now visible."
           : "Returned to standard minimalist store styling.",

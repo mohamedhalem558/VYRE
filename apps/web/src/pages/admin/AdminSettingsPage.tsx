@@ -7,21 +7,15 @@ import { Badge } from "../../components/ui/badge.js";
 import { useToast } from "../../components/ui/toast.js";
 import { formatDate } from "../../utils/formatters.js";
 import {
-  Sparkles,
   Snowflake,
   Clock,
   Eye,
-  CheckCircle2,
-  AlertTriangle,
   Mail,
   Copy,
-  Download,
-  Calendar,
   Save,
   RotateCcw,
   Sliders,
   Shield,
-  Layers,
 } from "lucide-react";
 
 export const AdminSettingsPage: React.FC = () => {
@@ -116,6 +110,7 @@ export const AdminSettingsPage: React.FC = () => {
     if (subscribers.length === 0) {
       toast({
         title: "No Subscribers Yet",
+        message: "No emails have been captured on the drop page yet.",
         description: "No emails have been captured on the drop page yet.",
         type: "info",
       });
@@ -126,6 +121,7 @@ export const AdminSettingsPage: React.FC = () => {
     navigator.clipboard.writeText(emailList);
     toast({
       title: "Emails Copied",
+      message: `${subscribers.length} subscriber email(s) copied to clipboard.`,
       description: `${subscribers.length} subscriber email(s) copied to clipboard.`,
       type: "success",
     });
