@@ -18,11 +18,15 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { cn } from "../utils/cn.js";
+import { useStoreSettings } from "../context/StoreSettingsContext.js";
+import { WinterDropPage } from "../pages/WinterDropPage.js";
+import { HolidayFlair } from "../components/seasonal/HolidayFlair.js";
 
 export const MainLayout: React.FC = () => {
   const { itemCount, openCartDrawer } = useCart();
   const { wishlistCount } = useWishlist();
   const { user, isAuthenticated } = useAuth();
+  const { isWinterDropMode, adminBypassDrop } = useStoreSettings();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -82,8 +86,23 @@ export const MainLayout: React.FC = () => {
     }
   };
 
+  // If Winter Drop Mode is active and visitor is not bypassing:
+  // Allow login/auth routes so admins can sign in anytime
+  const isAuthRoute =
+    location.pathname.startsWith("/login") ||
+    location.pathname.startsWith("/register") ||
+    location.pathname.startsWith("/forgot-password") ||
+    location.pathname.startsWith("/reset-password");
+
+  if (isWinterDropMode && !adminBypassDrop && !isAuthRoute) {
+    return <WinterDropPage />;
+  }
+
   return (
-    <div className="min-h-screen bg-white text-neutral-900 flex flex-col font-sans selection:bg-black selection:text-white">
+    <div className="min-h-screen bg-white text-neutral-900 flex flex-col font-sans selection:bg-black selection:text-white relative">
+      {/* Festive Falling Snow Flair (active when Holiday Theme is enabled) */}
+      <HolidayFlair />
+
       {/* 1. Top Announcement Bar */}
       <AnnouncementBar />
 

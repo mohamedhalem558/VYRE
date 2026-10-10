@@ -6,6 +6,7 @@ import { ToastProvider } from "./components/ui/toast.js";
 import { AuthProvider } from "./context/AuthContext.js";
 import { WishlistProvider } from "./context/WishlistContext.js";
 import { CartProvider } from "./context/CartContext.js";
+import { StoreSettingsProvider } from "./context/StoreSettingsContext.js";
 import { AppRoutes } from "./routes/index.js";
 
 const queryClient = new QueryClient({
@@ -24,13 +25,15 @@ export const App: React.FC = () => {
       <BrandProvider>
         <ToastProvider>
           <AuthProvider>
-            <WishlistProvider>
-              <CartProvider>
-                <BrowserRouter>
-                  <AppRoutes />
-                </BrowserRouter>
-              </CartProvider>
-            </WishlistProvider>
+            <StoreSettingsProvider>
+              <WishlistProvider>
+                <CartProvider>
+                  <BrowserRouter>
+                    <AppRoutes />
+                  </BrowserRouter>
+                </CartProvider>
+              </WishlistProvider>
+            </StoreSettingsProvider>
           </AuthProvider>
         </ToastProvider>
       </BrandProvider>

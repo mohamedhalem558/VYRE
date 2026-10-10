@@ -14,6 +14,7 @@ import reviewRouter from "./review.routes.js";
 import userRouter from "./user.routes.js";
 import uploadRouter from "./upload.routes.js";
 import heroRouter from "./hero.routes.js";
+import storeSettingsRouter from "./store-settings.routes.js";
 
 const apiRouter = Router();
 
@@ -32,5 +33,6 @@ apiRouter.use("/coupons", couponRouter);
 apiRouter.use("/reviews", reviewRouter);
 apiRouter.use("/upload", uploadRouter);
 apiRouter.use("/hero", heroRouter);
+apiRouter.use("/store-settings", storeSettingsRouter);
 
 export default apiRouter;

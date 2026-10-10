@@ -16,12 +16,23 @@ import {
   ArrowUpRight,
   RefreshCw,
   Boxes,
+  Snowflake,
+  Sliders,
+  ExternalLink,
 } from "lucide-react";
+import { useStoreSettings } from "../../context/StoreSettingsContext.js";
 
 export const AdminDashboardPage: React.FC = () => {
   const [stats, setStats] = useState<DashboardStatsDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const {
+    settings,
+    isWinterDropMode,
+    isHolidayTheme,
+    toggleWinterDropMode,
+    toggleHolidayTheme,
+  } = useStoreSettings();
 
   const fetchStats = async () => {
     try {
@@ -94,6 +105,158 @@ export const AdminDashboardPage: React.FC = () => {
               Process Orders
             </Button>
           </Link>
+        </div>
+      </div>
+
+      {/* Storefront Modes / Seasonal Themes Section */}
+      <div className="rounded-sm border border-neutral-800 bg-neutral-950 p-6 space-y-4 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-900 pb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-[#d4af37]">
+                Live Merchandising Controls
+              </span>
+            </div>
+            <h2 className="text-base font-bold uppercase tracking-wider text-white">
+              Storefront Modes / Seasonal Themes
+            </h2>
+            <p className="text-xs text-neutral-400">
+              Control public access mode and festive atmosphere. Admin dashboard remains fully accessible at all times.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link to="/admin/settings">
+              <Button variant="outline" size="sm" leftIcon={<Sliders className="h-3.5 w-3.5" />}>
+                Configure Modes
+              </Button>
+            </Link>
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 rounded-sm transition-colors"
+            >
+              <ExternalLink className="h-3.5 w-3.5 text-[#d4af37]" />
+              <span>Preview Storefront</span>
+            </a>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          {/* Winter Drop Mode Card */}
+          <div
+            className={`rounded-sm border p-4 flex flex-col justify-between space-y-3 transition-colors ${
+              isWinterDropMode
+                ? "border-amber-500/40 bg-amber-950/10"
+                : "border-neutral-800/80 bg-neutral-900/40 hover:border-neutral-700"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`h-9 w-9 rounded-sm flex items-center justify-center shrink-0 ${
+                    isWinterDropMode
+                      ? "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                      : "bg-neutral-800 text-neutral-400"
+                  }`}
+                >
+                  <Clock className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                    Winter Coming Soon / Drop Mode
+                  </h3>
+                  <p className="text-[11px] text-neutral-400">
+                    {isWinterDropMode
+                      ? "Public store locked to Winter Drop countdown"
+                      : "Standard e-commerce store active"}
+                  </p>
+                </div>
+              </div>
+
+              <Badge variant={isWinterDropMode ? "gold" : "outline"} className="shrink-0 text-[10px]">
+                {isWinterDropMode ? "DROP MODE ACTIVE" : "DISABLED"}
+              </Badge>
+            </div>
+
+            <p className="text-[11px] text-neutral-400 leading-relaxed">
+              {isWinterDropMode
+                ? "Public storefront displays the full-screen Winter Collection teaser with live countdown and VIP email capture. Turn off anytime here to instantly restore."
+                : "Normal store is active. Customers can browse products, add to cart, and checkout normally."}
+            </p>
+
+            <div className="pt-2 border-t border-neutral-900/80 flex items-center justify-between">
+              <span className="text-[10px] font-mono text-neutral-400 truncate max-w-[200px]">
+                Headline: {settings.dropTitle || "Winter 2026 Collection"}
+              </span>
+              <Button
+                variant={isWinterDropMode ? "destructive" : "gold"}
+                size="sm"
+                onClick={() => toggleWinterDropMode()}
+                className="h-7 text-[11px] font-bold"
+              >
+                {isWinterDropMode ? "Turn Off Drop Mode" : "Activate Winter Drop Mode"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Holiday Theme Card */}
+          <div
+            className={`rounded-sm border p-4 flex flex-col justify-between space-y-3 transition-colors ${
+              isHolidayTheme
+                ? "border-cyan-500/40 bg-cyan-950/10"
+                : "border-neutral-800/80 bg-neutral-900/40 hover:border-neutral-700"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`h-9 w-9 rounded-sm flex items-center justify-center shrink-0 ${
+                    isHolidayTheme
+                      ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40"
+                      : "bg-neutral-800 text-neutral-400"
+                  }`}
+                >
+                  <Snowflake className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                    Christmas / Holiday Theme
+                  </h3>
+                  <p className="text-[11px] text-neutral-400">
+                    {isHolidayTheme
+                      ? "Festive snowfall & holiday accents active"
+                      : "Standard luxury theme active"}
+                  </p>
+                </div>
+              </div>
+
+              <Badge variant={isHolidayTheme ? "success" : "outline"} className="shrink-0 text-[10px]">
+                {isHolidayTheme ? "HOLIDAY THEME ON" : "DISABLED"}
+              </Badge>
+            </div>
+
+            <p className="text-[11px] text-neutral-400 leading-relaxed">
+              {isHolidayTheme
+                ? "Atmospheric snowfall canvas particle animation enabled across storefront alongside holiday announcement ribbon."
+                : "Clean standard theme without seasonal holiday visual effects."}
+            </p>
+
+            <div className="pt-2 border-t border-neutral-900/80 flex items-center justify-between">
+              <span className="text-[10px] font-mono text-neutral-400">
+                Flair: {settings.snowIntensity || "medium"} intensity
+              </span>
+              <Button
+                variant={isHolidayTheme ? "outline" : "gold"}
+                size="sm"
+                onClick={() => toggleHolidayTheme()}
+                className="h-7 text-[11px] font-bold"
+              >
+                {isHolidayTheme ? "Disable Holiday Theme" : "Enable Holiday Theme"}
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 

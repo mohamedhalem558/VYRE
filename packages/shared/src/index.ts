@@ -9,5 +9,6 @@ export * from "./types/order.types.js";
 export * from "./types/admin.types.js";
 export * from "./types/coupon.types.js";
 export * from "./types/review.types.js";
+export * from "./types/store-settings.types.js";
 export * from "./constants/brand.js";
 export * from "./constants/http.js";

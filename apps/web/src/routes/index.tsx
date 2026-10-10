@@ -36,6 +36,7 @@ import { AdminCouponsPage } from "../pages/admin/AdminCouponsPage.js";
 import { AdminUsersPage } from "../pages/admin/AdminUsersPage.js";
 import { AdminCategoriesPage } from "../pages/admin/AdminCategoriesPage.js";
 import { AdminHeroPage } from "../pages/admin/AdminHeroPage.js";
+import { AdminSettingsPage } from "../pages/admin/AdminSettingsPage.js";
 
 // Informational Pages
 import { AboutPage } from "../pages/AboutPage.js";
@@ -133,6 +134,14 @@ export const AppRoutes: React.FC = () => {
           element={
             <ProtectedRoute allowedRoles={["ADMIN"]}>
               <AdminUsersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="settings"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN", "MARKETING_MANAGER"]}>
+              <AdminSettingsPage />
             </ProtectedRoute>
           }
         />

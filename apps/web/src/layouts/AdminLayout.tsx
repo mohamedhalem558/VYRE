@@ -122,10 +122,10 @@ export const AdminLayout: React.FC = () => {
           visible: isAdmin,
         },
         {
-          label: "Settings",
+          label: "Storefront Modes & Settings",
           href: "/admin/settings",
           icon: Settings,
-          visible: isAdmin,
+          visible: isAdmin || isMarketingManager,
         },
       ],
     },

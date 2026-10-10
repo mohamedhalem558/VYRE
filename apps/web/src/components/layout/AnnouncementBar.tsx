@@ -1,9 +1,18 @@
 import React from "react";
-import { Instagram } from "lucide-react";
+import { Instagram, Snowflake } from "lucide-react";
+import { useStoreSettings } from "../../context/StoreSettingsContext.js";
 
 export const AnnouncementBar: React.FC = () => {
+  const { isHolidayTheme, settings } = useStoreSettings();
+
   return (
-    <div className="bg-[#f5f5f5] text-neutral-800 text-[11px] sm:text-xs font-medium border-b border-neutral-200/80 transition-colors">
+    <div
+      className={
+        isHolidayTheme
+          ? "bg-[#0f0f12] text-neutral-200 text-[11px] sm:text-xs font-medium border-b border-[#d4af37]/30 transition-colors"
+          : "bg-[#f5f5f5] text-neutral-800 text-[11px] sm:text-xs font-medium border-b border-neutral-200/80 transition-colors"
+      }
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-8 flex items-center justify-between">
         {/* Social media icons on the left */}
         <div className="flex items-center gap-3">
@@ -12,7 +21,11 @@ export const AnnouncementBar: React.FC = () => {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Instagram"
-            className="text-neutral-600 hover:text-black transition-colors"
+            className={
+              isHolidayTheme
+                ? "text-neutral-400 hover:text-white transition-colors"
+                : "text-neutral-600 hover:text-black transition-colors"
+            }
           >
             <Instagram className="h-3.5 w-3.5" />
           </a>
@@ -21,7 +34,11 @@ export const AnnouncementBar: React.FC = () => {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="TikTok"
-            className="text-neutral-600 hover:text-black transition-colors"
+            className={
+              isHolidayTheme
+                ? "text-neutral-400 hover:text-white transition-colors"
+                : "text-neutral-600 hover:text-black transition-colors"
+            }
           >
             <svg
               className="h-3.5 w-3.5 fill-current"
@@ -34,16 +51,33 @@ export const AnnouncementBar: React.FC = () => {
         </div>
 
         {/* Center promotional message */}
-        <div className="text-center font-medium tracking-wide text-neutral-700 flex items-center justify-center gap-2 sm:gap-3 truncate px-2">
-          <span>Free shipping over 3000 EGP</span>
-          <span className="text-neutral-400 font-bold">•</span>
-          <span>3 Days Returns & Exchanges</span>
-          <span className="hidden md:inline text-neutral-400 font-bold">•</span>
-          <span className="hidden md:inline">Cash on Delivery</span>
+        <div className="text-center font-medium tracking-wide flex items-center justify-center gap-2 sm:gap-3 truncate px-2">
+          {isHolidayTheme ? (
+            <div className="flex items-center gap-2 text-[#d4af37]">
+              <Snowflake className="h-3 w-3 shrink-0 animate-spin" style={{ animationDuration: "10s" }} />
+              <span className="font-semibold uppercase tracking-wider text-[11px] text-white">
+                {settings.announcementText || "Holiday Season • Complimentary Cairo Shipping On Orders Over 1500 EGP"}
+              </span>
+            </div>
+          ) : (
+            <div className="text-neutral-700 flex items-center gap-2 sm:gap-3">
+              <span>Free shipping over 3000 EGP</span>
+              <span className="text-neutral-400 font-bold">•</span>
+              <span>3 Days Returns & Exchanges</span>
+              <span className="hidden md:inline text-neutral-400 font-bold">•</span>
+              <span className="hidden md:inline">Cash on Delivery</span>
+            </div>
+          )}
         </div>
 
         {/* Right helper info */}
-        <div className="hidden sm:flex items-center gap-2 text-[11px] text-neutral-500 font-mono uppercase">
+        <div
+          className={
+            isHolidayTheme
+              ? "hidden sm:flex items-center gap-2 text-[11px] text-[#d4af37] font-mono uppercase"
+              : "hidden sm:flex items-center gap-2 text-[11px] text-neutral-500 font-mono uppercase"
+          }
+        >
           <span>EGP / CAIRO</span>
         </div>
       </div>
