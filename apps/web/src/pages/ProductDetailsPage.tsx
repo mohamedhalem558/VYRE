@@ -131,6 +131,14 @@ export const ProductDetailsPage: React.FC = () => {
     navigate("/checkout");
   };
 
+  const handleShare = () => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(window.location.href);
+    }
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
   const getImageForColor = (color: ProductColor, prod: Product): string => {
     // 1. Direct explicit image on the color variant
     if (color.image) return color.image;
