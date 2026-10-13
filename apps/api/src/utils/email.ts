@@ -1,4 +1,4 @@
-import nodemailer, { type Transporter } from "nodemailer";
+import nodemailer, { type Transporter, type TransportOptions } from "nodemailer";
 import { env } from "../config/env.js";
 
 // ─── SMTP Configuration & Transporter ───────────────────────────────────────
@@ -41,7 +41,7 @@ export async function getTransporter(): Promise<Transporter | null> {
   try {
     // IMPORTANT: For Gmail, use `service` only — combining `service` + `host`/`port`
     // causes Nodemailer to ignore service settings and use the wrong host.
-    const transportConfig: nodemailer.TransportOptions = isGmail
+    const transportConfig: TransportOptions = isGmail
       ? ({
           service: "gmail",
           auth: {
