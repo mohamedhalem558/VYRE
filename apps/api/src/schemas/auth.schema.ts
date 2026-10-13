@@ -71,16 +71,23 @@ export const resetPasswordSchema = z
       .optional()
       .or(z.literal("")),
     password: z
-      .string({ required_error: "Password is required" })
+      .string()
       .min(8, "Password must be at least 8 characters")
       .max(128, "Password cannot exceed 128 characters")
-      .regex(/[A-Z]/, "Password must contain at least one uppercase letter (A-Z)")
-      .regex(/[a-z]/, "Password must contain at least one lowercase letter (a-z)")
-      .regex(/[\d\W_]/, "Password must contain at least one number (0-9) or symbol (!@#$%^&*)"),
+      .optional(),
+    newPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .max(128, "Password cannot exceed 128 characters")
+      .optional(),
   })
   .refine((data) => !!(data.token || data.otp || data.code), {
     message: "A 6-digit OTP code or reset token is required",
     path: ["otp"],
+  })
+  .refine((data) => !!(data.password || data.newPassword), {
+    message: "Password (or newPassword) is required and must be at least 8 characters",
+    path: ["password"],
   });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

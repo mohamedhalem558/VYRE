@@ -12,7 +12,7 @@ import {
   verifyRefreshToken,
 } from "../utils/jwt.js";
 import { User, AuthResponse } from "@vyre/shared";
-import { sendPasswordResetEmail } from "../utils/email.js";
+import { sendPasswordResetEmail } from "./email.service.js";
 
 export class AuthService {
   private formatUser(user: any): User {
@@ -260,8 +260,8 @@ export class AuthService {
     // Hash the OTP with SHA-256 before storing in database for security
     const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
-    // Code is valid for 15 minutes
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    // Code is valid for 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     // Save hashed token and expiration in Prisma User record
     await prisma.user.update({
@@ -272,11 +272,17 @@ export class AuthService {
       },
     });
 
-    // Dispatch real email via Nodemailer (or fallback to console.log in email.ts)
+    // Dispatch real email via email.service.ts (Nodemailer)
     try {
-      await sendPasswordResetEmail(user.email, otp);
+      console.log(`[AuthService] 📧 Dispatching OTP (${otp}) to ${user.email} via email.service.ts...`);
+      const sent = await sendPasswordResetEmail(user.email, otp);
+      if (sent) {
+        console.log(`[AuthService] ✅ OTP email successfully sent to ${user.email}`);
+      } else {
+        console.warn(`[AuthService] ⚠️ email.service.ts returned false when attempting to send to ${user.email}`);
+      }
     } catch (emailError: any) {
-      console.error("[AuthService] Failed to send password reset email:", emailError?.message || emailError);
+      console.error("[AuthService] ❌ Failed to send password reset email:", emailError?.message || emailError);
       console.log(`[AuthService] [FALLBACK LOG] OTP for ${user.email}: ${otp}`);
     }
 
@@ -293,11 +299,18 @@ export class AuthService {
     return response;
   }
 
-  async resetPassword(data: ResetPasswordInput): Promise<{ message: string }> {
-    const code = (data.otp || data.token || data.code || "").trim();
+  async resetPassword(data: ResetPasswordInput | any): Promise<{ message: string }> {
+    const code = (data.otp || data.token || data.code || "").toString().trim();
+    const newPassword = (data.newPassword || data.password || "").toString();
 
     if (!code) {
       const error: any = new Error("A 6-digit verification code or reset token is required.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!newPassword || newPassword.length < 8) {
+      const error: any = new Error("Password must be at least 8 characters long.");
       error.statusCode = 400;
       throw error;
     }
@@ -341,7 +354,7 @@ export class AuthService {
     }
 
     const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(data.password, salt);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
 
     await prisma.user.update({
       where: { id: user.id },
@@ -352,6 +365,8 @@ export class AuthService {
         refreshToken: null, // Revoke active sessions for security
       },
     });
+
+    console.log(`[AuthService] ✅ Password reset successfully completed for user: ${user.email}`);
 
     return {
       message: "Password reset successfully. You may now login with your new credentials.",

@@ -1,14 +1,33 @@
 import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: false, // TLS
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
-});
+dotenv.config();
+
+const createTransporter = () => {
+    const host = (process.env.SMTP_HOST || 'smtp.gmail.com').trim();
+    const port = Number(process.env.SMTP_PORT) || 587;
+    const user = (process.env.SMTP_USER || '').trim();
+    const pass = (process.env.SMTP_PASS || process.env.SMTP_PASSWORD || '').trim();
+    const isGmail = host.toLowerCase().includes('gmail');
+
+    if (isGmail) {
+        return nodemailer.createTransport({
+            service: 'gmail',
+            auth: { user, pass },
+            tls: { rejectUnauthorized: false },
+        });
+    }
+
+    return nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,
+        auth: { user, pass },
+        tls: { rejectUnauthorized: false },
+    });
+};
+
+const transporter = createTransporter();
 
 /**
  * دالة عامة لإرسال أي إيميل
