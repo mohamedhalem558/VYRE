@@ -1,46 +1,26 @@
-import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
+import { Resend } from 'resend';
 
-dotenv.config();
-
-const createTransporter = () => {
-    const host = (process.env.SMTP_HOST || 'smtp.gmail.com').trim();
-    const port = Number(process.env.SMTP_PORT) || 587;
-    const user = (process.env.SMTP_USER || '').trim();
-    const pass = (process.env.SMTP_PASS || process.env.SMTP_PASSWORD || '').trim();
-    const isGmail = host.toLowerCase().includes('gmail');
-
-    if (isGmail) {
-        return nodemailer.createTransport({
-            service: 'gmail',
-            auth: { user, pass },
-            tls: { rejectUnauthorized: false },
-        });
-    }
-
-    return nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: { user, pass },
-        tls: { rejectUnauthorized: false },
-    });
-};
-
-const transporter = createTransporter();
+// تهيئة Resend باستخدام الـ API Key
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
- * دالة عامة لإرسال أي إيميل
+ * دالة عامة لإرسال أي إيميل عبر Resend API
  */
 export const sendEmail = async (to: string, subject: string, htmlContent: string) => {
     try {
-        const info = await transporter.sendMail({
-            from: process.env.EMAIL_FROM || `"VYRE Store" <${process.env.SMTP_USER}>`,
-            to,
-            subject,
+        const { data, error } = await resend.emails.send({
+            from: process.env.EMAIL_FROM || 'VYRE Store <onboarding@resend.dev>',
+            to: [to],
+            subject: subject,
             html: htmlContent,
         });
-        console.log('✅ Email sent successfully: %s', info.messageId);
+
+        if (error) {
+            console.error('❌ Resend API Error:', error);
+            return false;
+        }
+
+        console.log('✅ Email sent successfully via Resend: %s', data?.id);
         return true;
     } catch (error) {
         console.error('❌ Error sending email:', error);
