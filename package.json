@@ -55,5 +55,8 @@
     "fashion"
   ],
   "author": "VYRE Team",
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "dependencies": {
+    "nodemailer": "^10.1.0"
+  }
 }
