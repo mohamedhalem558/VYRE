@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { authService } from "../services/auth.service.js";
+import { sendPasswordResetEmail } from "../services/email.service.js";
 
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
@@ -90,10 +91,19 @@ export class AuthController {
   async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { email } = req.body;
+
+      // استدعاء خدمة المصادقة للتعامل مع الـ Database
       const result = await authService.forgotPassword(email);
+
+      // توليد وإرسال إيميل الـ OTP فوراً عبر Resend
+      if (email) {
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        await sendPasswordResetEmail(email, otpCode);
+      }
+
       res.status(200).json({
         success: true,
-        message: result.message || "A 6-digit verification code has been dispatched to your email address.",
+        message: "A 6-digit verification code has been dispatched to your email address.",
         data: result,
       });
     } catch (error) {
