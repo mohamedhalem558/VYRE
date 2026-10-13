@@ -567,17 +567,44 @@ export const CheckoutPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Place Order CTA Button */}
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              className="w-full text-xs font-bold uppercase"
-              isLoading={isSubmitting}
-              rightIcon={<ArrowRight className="h-4 w-4" />}
-            >
-              Confirm & Place Order
-            </Button>
+            {/* Place Order CTA Button — Luxury Redesign */}
+            <div className="pt-2">
+              <button
+                type="submit"
+                id="btn-place-order"
+                disabled={isSubmitting}
+                className={cn(
+                  "group relative w-full overflow-hidden flex items-center justify-center gap-3",
+                  "px-6 py-4 rounded-xs",
+                  "bg-neutral-950 text-white",
+                  "border border-neutral-700 hover:border-neutral-400",
+                  "shadow-[0_4px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.55)]",
+                  "transition-all duration-300 active:scale-[0.98]",
+                  "font-extrabold uppercase tracking-[0.15em] text-[13px]",
+                  "disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+                )}
+              >
+                <span
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                  style={{ background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.06) 50%, transparent 70%)" }}
+                />
+                <span className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-neutral-600 to-transparent group-hover:via-[#d4af37]/60 transition-all duration-500" />
+                {isSubmitting ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin text-neutral-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <span className="tracking-widest text-neutral-300">Placing Order...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="relative">Confirm &amp; Place Order</span>
+                    <ArrowRight className="relative h-4 w-4 group-hover:translate-x-0.5 transition-transform duration-200" />
+                  </>
+                )}
+              </button>
+            </div>
 
             <div className="flex items-center justify-center gap-2 text-[11px] text-neutral-500">
               <ShieldCheck className="h-4 w-4 text-black" />

@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { StoreSettingsDTO, UpdateStoreSettingsDTO, DropWaitlistSubscriberDTO } from "@vyre/shared";
+import { sendWinterDropWelcomeEmail, sendAdminWinterDropAlertEmail } from "../utils/email.js";
 
 export const DEFAULT_STORE_SETTINGS: StoreSettingsDTO = {
   winterDropMode: false,
@@ -142,6 +143,16 @@ export class StoreSettingsService {
     } catch (err) {
       console.error("[StoreSettingsService] Failed to persist waitlist subscriber:", err);
     }
+
+    // Fire-and-forget: send welcome email to subscriber + admin alert
+    Promise.all([
+      sendWinterDropWelcomeEmail(normalizedEmail).catch((err) =>
+        console.error("[StoreSettingsService] Failed to send welcome email to subscriber:", err)
+      ),
+      sendAdminWinterDropAlertEmail(normalizedEmail, waitlist.length).catch((err) =>
+        console.error("[StoreSettingsService] Failed to send admin alert email:", err)
+      ),
+    ]).catch(() => {});
 
     return {
       success: true,

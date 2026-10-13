@@ -27,6 +27,7 @@ export function isSmtpConfigured(): boolean {
 }
 
 export async function getTransporter(): Promise<Transporter | null> {
+  // Return cached transporter only if it was successfully created
   if (transporter) return transporter;
 
   const config = getSmtpConfig();
@@ -34,32 +35,48 @@ export async function getTransporter(): Promise<Transporter | null> {
     return null;
   }
 
-  const isGmail = config.host.toLowerCase().includes("gmail");
+  const isGmail = config.host.toLowerCase().includes("gmail") || config.host === "";
   const isSecure = config.port === 465;
 
   try {
-    transporter = nodemailer.createTransport({
-      host: config.host,
-      port: config.port,
-      secure: isSecure,
-      service: isGmail ? "gmail" : undefined,
-      auth: {
-        user: config.user,
-        pass: config.pass,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
-    });
+    // IMPORTANT: For Gmail, use `service` only — combining `service` + `host`/`port`
+    // causes Nodemailer to ignore service settings and use the wrong host.
+    const transportConfig: nodemailer.TransportOptions = isGmail
+      ? ({
+          service: "gmail",
+          auth: {
+            user: config.user,
+            pass: config.pass, // Use App Password for Gmail (not regular password)
+          },
+          tls: { rejectUnauthorized: false },
+        } as any)
+      : ({
+          host: config.host,
+          port: config.port,
+          secure: isSecure,
+          auth: {
+            user: config.user,
+            pass: config.pass,
+          },
+          tls: { rejectUnauthorized: false },
+          connectionTimeout: 10000,
+          greetingTimeout: 10000,
+          socketTimeout: 20000,
+        } as any);
 
-    console.log(`[Email] Configured SMTP transporter (${config.host}:${config.port}) for ${config.user}`);
+    const newTransporter = nodemailer.createTransport(transportConfig);
+
+    // Verify connectivity before caching
+    await newTransporter.verify();
+
+    transporter = newTransporter;
+    console.log(`[Email] ✅ SMTP transporter verified and ready (${isGmail ? "Gmail" : config.host + ":" + config.port}) for ${config.user}`);
     return transporter;
-  } catch (error) {
-    console.error("[Email] Failed to create SMTP transporter:", error);
+  } catch (error: any) {
+    // Do NOT cache a failed transporter — allow retries on next call
     transporter = null;
+    console.error(`[Email] ❌ SMTP transporter verification failed: ${error?.message || error}`);
+    console.error("[Email] Hint: For Gmail, ensure you are using an App Password (not your account password). Enable 2FA and generate one at https://myaccount.google.com/apppasswords");
     return null;
   }
 }
@@ -673,5 +690,206 @@ export async function sendOrderDeliveredEmail(order: any): Promise<void> {
     console.log(`[Email] Order Delivered email dispatched to ${to} (#${order.orderNumber})`);
   } catch (error) {
     console.error(`[Email] Failed to send order delivered email for #${order.orderNumber}:`, error);
+  }
+}
+
+// ─── 6. Winter Drop VIP Welcome Email (Customer) ──────────────────────────────
+export async function sendWinterDropWelcomeEmail(
+  to: string
+): Promise<{ success: boolean; delivered: boolean; error?: string }> {
+  const clientUrl = process.env.CLIENT_URL || env.CLIENT_URL || "https://www.vyree.shop";
+  const instagramUrl = "https://www.instagram.com/vyree.shop/";
+
+  const config = getSmtpConfig();
+
+  if (!config.isConfigured) {
+    console.log(`[Email] [SMTP NOT CONFIGURED] Winter Drop welcome email for: ${to}`);
+    return { success: true, delivered: false };
+  }
+
+  const contentHtml = `
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="display:inline-block;padding:8px 24px;background:#000;border:1px solid #d4af37;border-radius:2px;">
+        <span style="font-size:11px;font-weight:700;letter-spacing:0.25em;color:#d4af37;text-transform:uppercase;font-family:monospace;">
+          ❄ VIP DROP REGISTRY ❄
+        </span>
+      </div>
+    </div>
+
+    <h1 style="margin:0 0 16px;font-size:26px;font-weight:900;color:#111111;text-transform:uppercase;letter-spacing:0.06em;text-align:center;">
+      You're On The List.
+    </h1>
+
+    <p style="margin:0 0 20px;font-size:14px;color:#444444;line-height:1.7;text-align:center;">
+      Welcome to the VYRE Winter 2027 VIP Drop Registry.<br />
+      <strong>${to}</strong> — you will be among the first to receive private early access before the public release.
+    </p>
+
+    <div style="background:#f9f9f9;border:1px solid #eeeeee;border-radius:4px;padding:20px 24px;margin:24px 0;text-align:center;">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.15em;color:#888;font-weight:700;margin-bottom:10px;">
+        What happens next
+      </div>
+      <div style="font-size:13px;color:#333;line-height:1.8;">
+        📧 &nbsp;You will receive a private access code via email before the public drop<br />
+        🕐 &nbsp;Exclusive 24-hour early access window reserved for VIP subscribers<br />
+        📦 &nbsp;Limited capsule — first come, first served
+      </div>
+    </div>
+
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:28px auto;">
+      <tr>
+        <td align="center" style="border-radius:2px;background-color:#000000;border:1px solid #d4af37;">
+          <a href="${clientUrl}"
+             target="_blank"
+             style="display:inline-block;padding:14px 40px;font-size:11px;font-weight:800;color:#d4af37;text-decoration:none;text-transform:uppercase;letter-spacing:0.2em;background-color:#000000;border-radius:2px;">
+            VISIT VYRE STORE
+          </a>
+        </td>
+      </tr>
+    </table>
+
+    <hr style="border:none;border-top:1px solid #eeeeee;margin:24px 0;" />
+
+    <p style="margin:0;font-size:12px;color:#888888;line-height:1.6;text-align:center;">
+      Follow us on
+      <a href="${instagramUrl}" target="_blank" style="color:#111;font-weight:700;text-decoration:underline;">Instagram @vyree.shop</a>
+      for behind-the-scenes drop previews.<br />
+      <span style="color:#aaa;">You're subscribed because you signed up at vyree.shop. You can unsubscribe at any time.</span>
+    </p>
+  `;
+
+  const html = buildEmailHtml(
+    "VYRE Winter 2027 Drop — You're On The VIP List",
+    "You're officially on the VYRE Winter 2027 VIP Drop Registry. Private access coming soon.",
+    contentHtml
+  );
+
+  const textBody = `
+VYRE. — WINTER 2027 VIP DROP REGISTRY
+
+Welcome! You are officially on the VYRE Winter 2027 VIP Drop List.
+
+${to} — you will receive a private early-access code to shop before the public release.
+
+What happens next:
+- You will receive a private access code via email before the public drop
+- Exclusive 24-hour early access window for VIP subscribers
+- Limited capsule — first come, first served
+
+Visit us: ${clientUrl}
+Follow us: ${instagramUrl}
+`.trim();
+
+  try {
+    const transport = await getTransporter();
+    if (!transport) {
+      console.warn(`[Email] SMTP not configured. Skipping Winter Drop welcome email to ${to}`);
+      return { success: true, delivered: false };
+    }
+
+    const info = await transport.sendMail({
+      from: getSenderAddress(),
+      to,
+      subject: `VYRE. — You're On The Winter 2027 Drop List 🖤`,
+      text: textBody,
+      html,
+    });
+
+    console.log(`[Email] ✅ Winter Drop welcome email sent to ${to} (Message ID: ${info.messageId})`);
+    return { success: true, delivered: true };
+  } catch (error: any) {
+    console.error(`[Email] ❌ Failed to send Winter Drop welcome email to ${to}:`, error?.message || error);
+    return { success: false, delivered: false, error: error?.message || "Email sending error" };
+  }
+}
+
+// ─── 7. Winter Drop Admin Alert Email (Store Owner Notification) ──────────────
+export async function sendAdminWinterDropAlertEmail(
+  subscriberEmail: string,
+  totalSubscriberCount: number
+): Promise<{ success: boolean; delivered: boolean; error?: string }> {
+  // Admin email — use the configured SMTP_USER or a dedicated admin address
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || env.SMTP_USER;
+
+  if (!adminEmail) {
+    console.warn("[Email] No admin email configured. Skipping admin Winter Drop alert.");
+    return { success: false, delivered: false, error: "No admin email configured" };
+  }
+
+  const config = getSmtpConfig();
+
+  if (!config.isConfigured) {
+    console.log(`[Email] [SMTP NOT CONFIGURED] Admin alert: New subscriber ${subscriberEmail} (Total: ${totalSubscriberCount})`);
+    return { success: true, delivered: false };
+  }
+
+  const now = new Date().toLocaleString("en-EG", {
+    timeZone: "Africa/Cairo",
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+
+  const contentHtml = `
+    <div style="background:#000;color:#d4af37;padding:10px 20px;border-radius:2px;text-align:center;margin-bottom:24px;">
+      <span style="font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;font-family:monospace;">
+        ⚡ NEW VIP SUBSCRIBER ALERT
+      </span>
+    </div>
+
+    <h1 style="margin:0 0 12px;font-size:20px;font-weight:800;color:#111111;text-transform:uppercase;letter-spacing:0.04em;">
+      New Winter Drop Subscriber
+    </h1>
+
+    <p style="margin:0 0 20px;font-size:14px;color:#444;line-height:1.7;">
+      A new visitor just subscribed to the VYRE Winter 2027 Drop waitlist.
+    </p>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f9f9f9;border:1px solid #eee;border-radius:3px;padding:16px;margin:0 0 20px;">
+      <tr>
+        <td style="padding:6px 0;font-size:13px;color:#666;font-weight:600;">Subscriber Email</td>
+        <td style="padding:6px 0;font-size:13px;color:#111;font-weight:800;">${subscriberEmail}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;font-size:13px;color:#666;font-weight:600;">Time</td>
+        <td style="padding:6px 0;font-size:13px;color:#111;">${now} (Cairo)</td>
+      </tr>
+      <tr style="border-top:1px solid #eee;">
+        <td style="padding:10px 0 4px;font-size:14px;font-weight:800;color:#000;">Total VIP Subscribers</td>
+        <td style="padding:10px 0 4px;font-size:18px;font-weight:900;color:#d4af37;">${totalSubscriberCount}</td>
+      </tr>
+    </table>
+
+    <p style="margin:0;font-size:12px;color:#888;line-height:1.6;">
+      This is an automated notification from the VYRE Drop Waitlist system.<br />
+      Log in to the admin panel to view all subscribers and manage the drop.
+    </p>
+  `;
+
+  const html = buildEmailHtml(
+    "VYRE Admin — New Winter Drop Subscriber",
+    `New subscriber: ${subscriberEmail} — Total VIP List: ${totalSubscriberCount}`,
+    contentHtml
+  );
+
+  try {
+    const transport = await getTransporter();
+    if (!transport) {
+      console.warn(`[Email] SMTP not configured. Skipping admin Winter Drop alert for ${subscriberEmail}`);
+      return { success: true, delivered: false };
+    }
+
+    await transport.sendMail({
+      from: getSenderAddress(),
+      to: adminEmail,
+      subject: `[VYRE Admin] New Winter Drop Subscriber: ${subscriberEmail} (Total: ${totalSubscriberCount})`,
+      text: `New subscriber: ${subscriberEmail}\nTotal VIP Subscribers: ${totalSubscriberCount}\nTime: ${now}`,
+      html,
+    });
+
+    console.log(`[Email] ✅ Admin Winter Drop alert sent for subscriber ${subscriberEmail} (Total: ${totalSubscriberCount})`);
+    return { success: true, delivered: true };
+  } catch (error: any) {
+    console.error(`[Email] ❌ Failed to send admin Winter Drop alert:`, error?.message || error);
+    return { success: false, delivered: false, error: error?.message || "Email sending error" };
   }
 }

@@ -60,9 +60,14 @@ export const ProductDetailsPage: React.FC = () => {
         setProduct(prod);
 
         if (prod) {
-          setSelectedImage(prod.primaryImage);
+          const initialColor = prod.colors[0] || null;
           setSelectedSize(prod.sizes[0] || "M");
-          setSelectedColor(prod.colors[0] || null);
+          setSelectedColor(initialColor);
+          setSelectedImage(
+            initialColor?.image ||
+            (prod.images && prod.images[0]) ||
+            prod.primaryImage
+          );
           setQuantity(1);
 
           const related = await productService.getRelatedProducts(prod.categorySlug, prod.id, 4);
@@ -126,10 +131,47 @@ export const ProductDetailsPage: React.FC = () => {
     navigate("/checkout");
   };
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2500);
+  const getImageForColor = (color: ProductColor, prod: Product): string => {
+    // 1. Direct explicit image on the color variant
+    if (color.image) return color.image;
+
+    const colorName = (color.name || "").toLowerCase().trim();
+    const colorCode = (color.code || "").toLowerCase().trim();
+
+    // 2. Check product.imageObjects if available
+    if (prod.imageObjects && prod.imageObjects.length > 0) {
+      const matchedObj = prod.imageObjects.find((img) => {
+        const alt = (img.altText || "").toLowerCase();
+        const url = (img.url || "").toLowerCase();
+        return (
+          (colorName && (alt.includes(colorName) || url.includes(colorName))) ||
+          (colorCode && (alt.includes(colorCode) || url.includes(colorCode)))
+        );
+      });
+      if (matchedObj?.url) return matchedObj.url;
+    }
+
+    // 3. Check product.images array for matching keyword or index alignment
+    if (prod.images && prod.images.length > 0) {
+      const matchedImg = prod.images.find((imgUrl) => {
+        const lower = imgUrl.toLowerCase();
+        return (
+          (colorName && lower.includes(colorName)) ||
+          (colorCode && lower.includes(colorCode))
+        );
+      });
+      if (matchedImg) return matchedImg;
+
+      // 4. Index-based alignment: map color index to images array index
+      const colorIndex = prod.colors.findIndex(
+        (c) => c.name.toLowerCase() === colorName || (c.id && c.id === color.id)
+      );
+      if (colorIndex >= 0 && colorIndex < prod.images.length) {
+        return prod.images[colorIndex];
+      }
+    }
+
+    return prod.primaryImage || (prod.images && prod.images[0]) || "";
   };
 
   return (
@@ -274,7 +316,10 @@ export const ProductDetailsPage: React.FC = () => {
                     <button
                       key={color.name}
                       type="button"
-                      onClick={() => setSelectedColor(color)}
+                      onClick={() => {
+                        setSelectedColor(color);
+                        setSelectedImage(getImageForColor(color, product));
+                      }}
                       className={cn(
                         "flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold transition-all",
                         selectedColor?.name === color.name
@@ -292,6 +337,7 @@ export const ProductDetailsPage: React.FC = () => {
                 </div>
               </div>
             )}
+
 
             {/* Size Selector + Size Guide Trigger */}
             {product.sizes && product.sizes.length > 0 && (
